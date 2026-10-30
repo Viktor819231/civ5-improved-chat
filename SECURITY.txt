@@ -1,0 +1,132 @@
+IMPROVED CHAT - PUBLIC BETA SECURITY BOUNDARY
+Updated 2026-10-30
+
+Threat model: anyone can read, modify and rebuild the mod, companion and Worker
+source, or call the endpoints without Civ V. Obfuscation, an embedded shared
+secret, client counters, a reported Steam ID and a 'game is running' check do
+not establish trusted identity. No mandatory Steam login or email is required.
+
+DEPLOYED PUBLIC BETA
+The public API at
+https://civ5-improved-chat-api.pages.dev
+supports anonymous installation registration and recovery through a Pages
+front door and an internal translation Worker service binding. IP_HASH_SECRET
+is configured privately on the server. Administrative provisioning is off.
+A separate credential-protected private-test Worker remains separate from it.
+These are deployed beta services, not a claim of production readiness. Source
+repository publication is separate. Original code is MIT licensed; third-party
+and generated game-layout rights are described separately in the notices.
+
+PUBLIC ACCESS
+Clients generate one installation UUID and 256-bit registration secret locally.
+The companion protects the secret and returned access token using Windows DPAPI,
+bound to the service URL. The server hashes both proofs/credentials at rest.
+Registration or renewal with the same proof retains the same subject and usage.
+Wrong recovery proofs cannot take over an existing UUID. Replacement tokens do
+not reset usage; only three unexpired tokens are retained per installation.
+Tokens last 30 days in public_beta; server revocation blocks secret recovery too.
+No client Steam ID is accepted as authentication, and no Steam login is required.
+
+SERVER CONTROLS
+- Installation: 2,000 translations / 100,000 UTF-8 input bytes per UTC day,
+  60 requests/minute and two concurrent translations.
+- Global: 10,000 translations / 500,000 input bytes per day; concurrency four;
+  at most 500 input bytes per individual inference.
+- IP: 6,000 translations / 250,000 bytes/day; subnet: 12,000 / 500,000 bytes/day.
+- New installations: 3/IP/day, 12/subnet/day, 200 globally/day.
+- Credential issues: 12/installation/day, 30/IP/hour, 100/IP/day, 1,000 globally/day.
+- IP/subnet request limits: 120/240 per minute; enrollment attempts 10/IP/minute.
+- General admitted requests: 20,000/IP/day and 40,000 globally/day.
+
+A single coordinating Durable Object transaction reserves installation/network/
+global allowances before inference, using actual UTF-8 input size and server
+time. Concurrent keys cannot overrun these shared request/byte counters. Failed
+inferences remain charged conservatively. Concurrency leases expire after two
+minutes for crash recovery; unexpectedly long inference needs monitoring.
+Client-supplied quota, model, identity, clock or billed-token claims are rejected.
+Public registration fails closed without the server secret and Cloudflare IP.
+
+Only edge-supplied CF-Connecting-IP is used; X-Forwarded-For and JSON IP fields
+are ignored/rejected. IP and subnet identifiers are HMAC-SHA256 hashed with a
+server secret before storage; IPv4 /24 and IPv6 /64 grouping limits address
+rotation within a network. Shared homes/universities/VPNs share network limits.
+These identify installations/networks, not verified people. Determined users
+can obtain additional identities from different networks or steal credentials.
+This reduces abuse; it does not make anonymous public access bot-proof.
+
+BUDGET GAP - NOT A DOLLAR CAP
+The proposed targets of $0.01/installation/day and $5/day overall are NOT
+implemented as guaranteed dollar caps. Current enforced allowances count
+requests and input bytes, not model tokens or invoice dollars. The deployed
+M2M100 call goes directly through Workers AI. Its documented API has no exposed
+maximum-output-token parameter, so input-byte reservations do not prove a
+worst-case output cost. Checking/truncating output after inference cannot undo
+charges already incurred. Do not describe these beta limits as a one-cent or
+five-dollar guarantee.
+
+AI Gateway dollar spend rules could add protection, but are not configured.
+The current Wrangler OAuth authorization returned HTTP403 when listing AI
+Gateways; it cannot provision/configure a gateway with that authorization.
+Next: an authorized account administrator must provide appropriate AI Gateway
+permissions or configure a dedicated gateway and a fixed daily global BLOCK
+spend rule, without a model fallback. Route every inference through that gateway
+and fail closed on absent configuration; verify M2M100 cost tracking in practice.
+
+Even then Cloudflare documents eventually-consistent enforcement, cost recorded
+after completion and best-effort pricing estimates; concurrent calls may exceed
+the gateway threshold. A provable inference ceiling additionally needs a verified
+maximum output cost (or a model/provider enforcing output-token limits) and
+conservative atomic worst-case cost reservations before each call. Prepaid
+credits are not an absolute cap: Cloudflare documents rare negative balances
+charged later. Neither an AI allowance nor an emergency translation switch caps
+Worker/DO/storage charges; rejected traffic can still incur those charges.
+
+PRIVACY / REMAINING QA
+This service's own code does not intentionally persist chat text or raw IPs.
+Cloudflare sees network connections and text used for inference; its own
+processing/retention terms still apply. Observability is disabled in the Worker
+configuration. A future AI Gateway must have request/response logging disabled
+separately; Workers logging settings do not control Gateway logging.
+
+Daily alarms remove expired token records and hashed network/issuance counters
+inactive for over two days. Stable registration proofs and subject usage remain
+for recovery and quota-reset prevention. Review the retention policy before a
+larger production rollout. Native lookup/history data stays local; it is not
+proof of server authentication. Broader real-client, abuse-load, provider
+quality/latency and operational-budget QA remains necessary for production.
+
+PUBLISHING / SECRETS
+Never distribute ADMIN_SECRET, IP_HASH_SECRET, Cloudflare API/OAuth credentials,
+.dev.vars, local settings/backups, provider keys or protected user credentials.
+Ignore rules do not remove already-committed files; review actual staged source
+and repository history. Local raw chat analysis, saves, replay archives and
+personal databases belong outside any public-source/release candidate.
+Third-party notices are separate from choosing Improved Chat's own license.
+
+Official references:
+https://developers.cloudflare.com/ai-gateway/features/spend-limits/
+https://developers.cloudflare.com/ai-gateway/features/unified-billing/
+https://developers.cloudflare.com/ai-gateway/usage/providers/workersai/
+https://developers.cloudflare.com/workers-ai/models/m2m100-1.2b/
+Backend API and exact configuration: cloudflare/README.txt.
+
+NEUTRAL PUBLIC ENDPOINT / BACKEND ROUTE PRIVACY
+Clients use only https://civ5-improved-chat-api.pages.dev. This is a dedicated
+Pages project; the account-wide Workers subdomain and unrelated projects are
+not changed. Pages advanced-mode _worker.js forwards exact allowed API routes
+through its TRANSLATION service binding. There is no public-backend HTTP fetch
+or redirect fallback, and admin routes are not forwarded.
+
+The ingress preserves Cloudflare-supplied CF-Connecting-IP across the trusted
+internal service boundary for HMAC network quotas, forwards credential headers
+only to that binding, and ignores X-Forwarded-For. Missing binding/IP fails
+closed. It rejects backend redirects and reconstructs safe error/contracted
+success responses instead of relaying internal headers or host metadata.
+
+All translation Worker configurations now disable workers.dev and preview
+routes. The operator must deploy and verify this on both public and private
+services; changing source configuration alone does not revoke a live route.
+No personal username should appear in public endpoint documentation, client
+defaults, packaged settings, API redirects or technical API responses. User
+message text is preserved, rather than filtered for account-related words.
+This routing/privacy change does not close the dollar-budget gap above.

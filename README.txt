@@ -1,0 +1,277 @@
+Improved Chat - public beta (lobby + in-game chat)
+
+QUICK START / INSTALL / UPDATE
+1. Download Improved-Chat-beta.zip and extract ALL files to a folder you will
+   keep, for example Documents\Improved Chat. Do not run it inside the ZIP.
+2. Exit Civilization V completely. Double-click Install Improved Chat.cmd.
+   It searches your Steam libraries. If necessary, choose the Civilization V
+   game folder containing CivilizationV.exe and Assets. It installs only the
+   supplied InGameTranslateMod folder under Assets\DLC\InGameTranslateMod and
+   verifies each copied file. It will never close an active game for you.
+3. If Windows needs permission to write into Program Files, the installer
+   explains why and opens the normal Windows UAC permission prompt. It does
+   not change your computer's permanent PowerShell execution policy.
+4. Open the Improved Chat desktop shortcut or InGameTranslateCompanion.exe.
+   On first use, click Enable online translation after reading the explanation.
+   No Steam login, email, account, Python installation or API key is required.
+5. Leave the companion running, start Civ V, and open Improved Chat near the
+   top right in a multiplayer lobby or game. The CURRENT beta still requires
+   this separate Windows companion for online translation and clipboard access.
+
+Keep the extracted folder: the shortcut runs the companion from there. The
+installer does not move the companion into your game installation, start the
+game, change saves, or distribute anyone else's access credentials. Updating
+replaces files only within its own InGameTranslateMod installation folder.
+If you decline UAC, nothing else needs changing: use manual installation below.
+
+MANUAL INSTALLATION
+With Civ V closed, copy the supplied InGameTranslateMod folder into your
+game's Assets\DLC folder. A typical Steam location is:
+C:\Program Files (x86)\Steam\steamapps\common\Sid Meier's Civilization V\Assets\DLC
+Copy ONLY the InGameTranslateMod folder. Do not copy the whole extracted
+Improved-Chat-beta folder, installer scripts or companion EXE into DLC. The
+expected layout is Assets\DLC\InGameTranslateMod\InGameTranslate_0.Civ5Pkg
+(along with its UI folder and other manifests), not an extra nested beta folder.
+On update, replace files only inside Assets\DLC\InGameTranslateMod.
+Then follow steps 4-5 above. Advanced installer options for experienced users:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -GamePath "D:\SteamLibrary\steamapps\common\Sid Meier's Civilization V" -NoShortcut
+
+IF THE INSTALLER REPORTS ANOTHER IMPROVED CHAT COPY
+Two copies of the same mod can load its UI twice. The installer looks for its
+own package ID under other DLC folders and stops before creating that conflict.
+It prints the exact folder(s) it found; it never deletes or moves them for you.
+With Civ V closed, move the old Improved Chat folder outside Assets\DLC and
+run the installer again. If the complete extracted Improved-Chat-beta folder
+was copied into DLC, move that extracted folder to Documents (or another
+location outside DLC) first, then run its installer there. Keep only the one
+canonical Assets\DLC\InGameTranslateMod installation. Leave all other DLC alone.
+
+PUBLIC TRANSLATION BETA
+Default service: https://civ5-improved-chat-api.pages.dev
+After you enable online translation, the companion automatically creates and
+Windows-protects this installation's credentials. No registration form, email
+or manual key entry is needed. Renewal keeps the same installation allowance.
+An installation identity is not a verified Steam account. Steam sign-in and
+cross-device account sharing are not implemented in this beta.
+
+Allowance per installation: 2,000 translation requests and 100,000 UTF-8 input
+bytes per day, resetting at 00:00 UTC. These are service API requests, not
+exact chat-message counts: long messages, colour spans or other splitting can
+produce several requests for one chat message. Non-Latin characters can use
+several UTF-8 bytes each. Server-wide, network/IP, rate and registration limits
+can also apply. The beta service may pause when shared limits are reached.
+Selecting Cloudflare never silently falls back to another provider.
+
+Only message text selected for online translation is sent to the service; it
+also sees your connection IP as part of the network request. Saved player
+notes, Steam IDs and game history remain local. Advanced settings contains
+optional MyMemory/Azure/custom-proxy overrides; ordinary beta use needs none.
+Close the companion to stop its online translation activity.
+
+TEST
+Click Settings, then Test RU / UK / KO. Three sample translations should appear in the
+translator panel. This test does not send any messages to other players.
+The status should say Companion: connected.
+
+LATINIZED RUSSIAN (TRANSLIT)
+For Russian written with English letters, click Translate next to the message,
+choose Russian (Latin letters), then Translate. The companion converts common
+translit spellings to Cyrillic locally before sending Russian to the provider.
+The original message stays available through Original. Ordinary English is
+not automatically treated as Russian. Informal spelling is ambiguous, so
+slang, missing soft signs and mixed English words may translate imperfectly.
+This source option is also available under Settings for an outgoing draft.
+To retry an already translated line with a different source language,
+right-click its Original/English button and choose the source again.
+
+CHAT
+This prototype is now ENGLISH-PERSPECTIVE only. Incoming translations always
+target English. Auto non-Latin queues other players' messages only when they
+contain non-Latin letters. Accented Latin, numbers, punctuation, emoji and
+Civ icon/colour tags do not trigger it. Your own messages do not auto-translate.
+Each incoming row has Translate. For Latin text, click it and choose the
+message's source language (French, German, Spanish, Polish, etc.). No language
+is silently guessed for that manual operation. Once translated, Original /
+English switches the displayed text without another API request. Retry after
+a failed request lets you specify the source language. Auto can be OFF while
+manual per-message translation remains available. Latin-script foreign text
+requires that manual action; this is deliberate user filtering, not detection.
+
+Incoming translations appear in a compact overlay. Normal chat remains
+intact; you can minimize it using its own chat button. Improved Chat becomes
+the overlay header when opened; click that header again to collapse it.
+Expand opens a centred window (default960 x700), fitted to your screen.
+Settings has Small (550x400), Medium (960x700) and Large (1100x820) presets,
+plus custom expanded width700-1600 and height620-1000 sliders. Values are
+saved locally. Screen bounds still cap the displayed size; text wraps and
+the transcript resizes. Resolution changes are checked while playing.
+Chat takes most of that window, with tabs for Chat, Player notes, Game history
+and Settings. Compact returns to the corner window. The draft and transcript
+stay intact across tabs. Settings contains preview, icons, colours,
+local tests and background opacity (85%, 96% or 100%; default96%). Only the background
+fades; the text stays fully opaque.
+Send language sits beside Translate at the bottom. Outgoing Source language,
+copy-draft, connection status and draft preview are in Settings. The fixed
+English incoming destination is hidden. Cancel replaces Paste only while
+messages are queued; duplicate notes controls are hidden in expanded mode.
+Choose English, Russian, Ukrainian or Korean; Source also offers Auto detect.
+The incoming destination displays fixed English. New messages appear immediately;
+their translations replace the matching overlay row when ready.
+Your own normal-chat messages also appear. Translated replies sent from the
+overlay show your readable original draft with the destination language.
+Hover a message to see its turn (or Lobby before a game starts), along with
+the original player name and saved note. Turns are not printed in chat text.
+Drag the header labelled Drag to move to reposition the window. Compact and
+Expanded keep separate positions and stay within the screen. The collapsed
+button follows the window position. Double-click the draggable header or use
+Compact/Expand to switch sizes. These controls only resize the local UI and
+preserve drafts/history while playing; they do not reload the game.
+The recipient dropdown beside the draft offers All players or individual
+connected human players. Private recipients are rechecked before sending;
+a disconnect cancels delivery and never changes the recipient to All.
+Choose Send language and switch Translate ON, then type and press Enter or
+Send. Each submitted draft is translated and sent with a (TR) tag; the input
+clears and keeps focus for your next reply. Translation stays enabled until
+you toggle it OFF. With it OFF (the default), Send sends the original text.
+Language, recipient, colour and icon are captured separately for each draft.
+Settings > Preview draft and Send preview provide an optional review step.
+Long messages are sent as numbered parts, at most 240 UTF-8 bytes each,
+paced 0.8 seconds apart, at most 20 parts. Cancel stops remaining parts and
+pending translate-and-send requests. Failed translations are not sent.
+Leaving the lobby cancels pending sends; rejoining starts a new session.
+
+PLAYER NOTES AND LOCAL NICKNAMES
+Click Player notes in the Improved Chat header. Select a player, enter an
+optional nickname and private note, then click Save locally. Nicknames apply
+to this overlay's chat history and recipient list. Hover received messages
+or recipient entries to see the original name and saved note. Clear saved
+info removes both fields; saved players remain in the editor when offline.
+Nicknames are appended to the real name: Hasc(thechatter), never substituted
+for it. Right-click a received message/name for Set note / nickname and See
+player details. Details include recorded games and former account nicknames.
+When a player first appears in a lobby/game session, a local chat summary
+shows the recorded encounter count and up to three former names. The full
+name list and names used in each recorded game are available in History.
+These summaries are local only; no announcement is sent to other players.
+Notes and nicknames stay on your PC, are not translated or sent to players,
+and survive game restarts. Sending always uses the original player slot;
+renaming someone locally does not change where private messages are sent.
+
+Steam.GetPlayerSteamID(playerID) is now used when available. A newly inspected
+binding in the installed Windows game returns a table whose ID field is the
+exact decimal Steam ID string. No Steam API key is required. The notes page
+shows that ID; notes saved with it follow the account across nickname changes.
+Earlier name-based notes remain available; saving again while a Steam ID is
+shown associates that entry with the account. No existing notes are deleted.
+If an ID is unavailable (such as LAN), the page explicitly says name match
+only. Changed/shared names cannot reliably identify a person in that mode.
+Simultaneous duplicate names without account IDs disable name-based saving.
+Flags/IP tracking are not implemented.
+
+GAME HISTORY
+Open Expand > Game history during a multiplayer game and click Record new
+game. Choose a player in the history dropdown to see the recorded game count,
+dates (UTC), your civilization, their civilization, names and observed turns.
+Records use Steam IDs when available, so account name changes do not split
+the count. Name-only records are labelled as such. Counts cover recorded
+games only; games played before recording are not reconstructed.
+
+Dates/civilizations update as the game progresses, even when the chat is
+minimized. Press Stop to stop recording. After loading or rejoining a saved
+game, select its existing record and click Continue selected to update the
+same record without adding to the count. Recording starts OFF after a reload:
+there is no verified persistent game GUID, so the mod never guesses whether
+two loads belong to the same game. Use Record new game only for a new game.
+Lobby visits do not count as games; history can be read from the lobby.
+The journal records observed players/civilizations, not results or victories.
+
+COPY, PASTE, ICONS
+The smiley button beside the input opens a Civ-icon picker. Clicking an icon
+inserts its game tag into the current draft without sending it. The older
+every-message icon prefix controls remain available as advanced Settings.
+Copy text in Windows and click Paste in the translator. Copy draft and
+Copy last put text on the Windows clipboard through the companion.
+You can also draft text in the companion with normal Ctrl+C/Ctrl+V.
+Choose an icon button to add that icon to each message/part you send through
+the translator. Click it again or No icon to remove the prefix.
+
+MESSAGE COLOURS
+Open Settings and click Colour to cycle Default, Red, Green, Cyan, Yellow,
+Magenta, White, and Blue. The choice applies with Translate ON or OFF.
+Default preserves colour tags pasted into the draft. A selected colour
+overrides those tags and colours the whole outgoing message. Every split
+part has balanced colour tags within the 240-byte message limit.
+Received colour spans are preserved during translation. Team messages use
+green and private messages purple unless overridden by inline colour tags.
+After updating this feature, restart BOTH Civ V and the companion.
+
+LIMITS
+The public beta allowance and service availability are described above.
+If you explicitly select MyMemory in Advanced settings, its anonymous
+allowance is 5,000 characters/day; a valid optional
+contact email increases the advertised allowance to 50,000 characters/day.
+Auto source detection is a basic RU/UK/KO/English heuristic. Short Ukrainian
+without distinctive letters may be mistaken for Russian. Choose Ukrainian
+explicitly when needed. English is assumed for Latin-script messages.
+Source language applies to outgoing drafts. Incoming auto uses its script
+heuristic; a per-message manual operation can explicitly choose the source.
+Missing Cyrillic/Korean font glyphs may still affect originals/previews;
+translation uses the received text bytes, not screen recognition.
+Only new messages received while the translator is loaded are translated.
+
+COMPATIBILITY
+Targets stock Civ V, Gods & Kings, and Brave New World with or without EUI.
+An early Lua guard disables Improved Chat when unknown activated mods or
+active gameplay DLC/modpacks are detected. Official installed DLC, EUI and
+Improved Chat are allowed. Hover the disabled button for the reason.
+Checks are repeated when entering a lobby/game and during play; unsupported
+content cancels pending sends. If detection APIs fail, the add-on stays off.
+This cannot identify every base-file replacement/custom DLL or modpack that
+reuses official IDs, and cannot prevent another UI from failing before Lua.
+Adds child contexts to InGame.xml and StagingRoom.xml; does not replace
+EUI's DiploCorner or normal chat callbacks. Other mods replacing these
+two XML layouts can conflict. Windows companion only.
+Lua/SQLite automated tests pass; live lobby rendering and multiplayer
+delivery need an in-game test on your setup.
+
+DATA
+Chat text selected for translation is sent to the configured provider. The
+default beta uses our Cloudflare service; MyMemory and Azure are optional.
+The local mailbox/history is ModUserData\InGameTranslateMod-1.db under
+Documents\My Games\Sid Meier's Civilization 5, capped at 1,000 finished
+requests. Companion settings are in %LOCALAPPDATA%\InGameTranslateMod.
+Installation identity and Windows-protected registration/access credentials
+are in installation.json in that same local folder. Do not share that file or
+your settings.json. They are created locally and are not in the download.
+Player notes/nicknames use separate igt_profiles and igt_account_profiles
+tables in the same database and remain until cleared in Player notes.
+The local journal uses igt_games and igt_encounters. It is not uploaded to
+translation providers, does not store IP addresses and is not purged with
+translation requests. The Steam ID identifies the account, not a nationality.
+Clipboard is read only on a Paste request. This mod does not alter saves.
+
+UNINSTALL
+Exit Civ V and close the companion. Remove ONLY your game's
+Assets\DLC\InGameTranslateMod folder. Do not delete the entire DLC folder.
+You can also remove the Improved Chat desktop shortcut and extracted beta
+folder. Notes/history and local settings are kept so an update or reinstall
+does not erase them. Removing local files does not remove server-side records.
+
+SOURCE / BUILD
+Open preview/index.html from the source project to try the layout in a local
+browser without hosting Civ V. It uses demonstration data only. It approximates
+the native game layout; changes in its inspector do not edit installed DLC.
+
+Future release requirement: everything should run inside Civ V without an
+external program. The CURRENT prototype still requires the companion for
+HTTP requests and clipboard access. Cloudflare hosting does not itself
+remove that client-side dependency; a supported in-game integration remains
+to be researched before claiming a companion-free version.
+
+Source is beside this release in the Desktop InGameTranslateMod project.
+This beta is intended for stock gameplay with optional EUI. The compatibility
+guard is best-effort detection, not a guarantee against every custom modpack.
+The download contains no personal settings, installation identity, API token,
+chat corpus or saved-game data. No source license has been declared yet.
+Run .venv\Scripts\python.exe -m unittest discover -s tests -v for checks.
+Run tools\build_package.py with Python to regenerate the release archive.

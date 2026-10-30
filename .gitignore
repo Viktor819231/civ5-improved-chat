@@ -1,0 +1,36 @@
+# Source can be public; local credentials and player data cannot.
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+dist-next/
+release/
+analysis/
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+*.pem
+*.key
+settings.json
+installation.json
+*.protected
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.Civ5Save
+*.civ5replay
+
+# Generated from the developer's local game installation or packaging build.
+*.spec
+DLC/InGameTranslateMod/*.Civ5Pkg
+DLC/InGameTranslateMod/Skin*/
+DLC/InGameTranslateMod/UI/StagingRoom.xml
+DLC/InGameTranslateMod/UI/InGameTranslateLobby.lua
+DLC/InGameTranslateMod/UI/InGameTranslateLobby.xml
+preview/*-preview.png
+tools/STEAM_BINDING_NOTES.txt
