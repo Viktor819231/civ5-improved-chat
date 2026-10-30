@@ -1,3 +1,4 @@
+import {download,downloadPage} from './dlc-download.js';
 // Advanced-mode Pages front door. The translator is accessible only through
 // its service binding; no public backend hostname or account suffix is used.
 const ROUTES=new Map([
@@ -27,7 +28,27 @@ async function jsonBody(response){
 }
 export default {
   async fetch(request,env){
-    const url=new URL(request.url),method=ROUTES.get(url.pathname);
+    const url=new URL(request.url);
+    if((url.pathname==='/'||url.pathname==='/download')&&request.method==='GET'){
+      if(url.protocol!=='https:')return Response.redirect('https://'+url.host+url.pathname,303);
+      return downloadPage();
+    }
+    const encrypted=/^\/v2\/dlc\/[a-f0-9-]{36}\/[1-9][0-9]{0,14}\/[a-f0-9]{32,12200}$/.test(url.pathname);
+    if(url.pathname==='/download'||encrypted){
+      const ip=request.headers.get('CF-Connecting-IP');
+      if(!ip||ip.length>64||typeof env.TRANSLATION?.fetch!=='function')return unavailable();
+      if(url.search)return respond({error:'Invalid request'},400);
+      try{
+        if(url.pathname==='/download')return await download(request,env,ip);
+        if(request.method!=='GET')return respond({error:'Method not allowed'},405);
+        const response=await env.TRANSLATION.fetch(new Request('https://translation.internal'+url.pathname,{headers:{'CF-Connecting-IP':ip},redirect:'manual'}));
+        if(response.status!==200)return unavailable();
+        const data=await response.text();
+        if(data.length>16000||!/^[a-f0-9]{32,}$/.test(data)||data.length%2)return unavailable();
+        return new Response(data,{headers:{'Content-Type':'text/plain','Cache-Control':'private, no-store','CDN-Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+      }catch{return unavailable();}
+    }
+    const method=ROUTES.get(url.pathname);
     if(!method)return respond({error:'Not found'},404);
     if(request.method!==method)return respond({error:'Method not allowed'},405);
     if(url.search)return respond({error:'Query parameters are not accepted'},400);
