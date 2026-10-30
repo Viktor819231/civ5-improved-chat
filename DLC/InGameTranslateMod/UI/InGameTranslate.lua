@@ -127,8 +127,8 @@ local accountProfiles = {};
 local nameAccounts = {};
 local editingSteam;
 local activePage = "chat";
-local opacityIndex = 2;
-local opacities = { 0.85, 0.96, 1 };
+local opacityIndex = 1;
+local opacities = { 0.80, 0.96, 1 };
 local transcriptWidth = 495;
 local history;
 local activeGame;
@@ -928,7 +928,7 @@ local function Poll()
         end
     end
     RefreshSendState();
-    Controls.CompanionStatus:SetText(native and (native.Enabled() and "Online translation enabled - no companion needed" or "Online translation disabled") or alive and "Companion: connected" or "Companion: offline - run InGameTranslateCompanion.exe");
+    Controls.CompanionStatus:SetText(native and (native.Enabled() and "Online translation enabled" or "Online translation disabled") or alive and "Companion: connected" or "Companion: offline - run InGameTranslateCompanion.exe");
     if pasteToken and state.clipboard_paste_token == pasteToken then
         Controls.Draft:SetText(tostring(state.clipboard_paste_result or ""):gsub("[\r\n\t]", " "));
         InvalidateDraft();

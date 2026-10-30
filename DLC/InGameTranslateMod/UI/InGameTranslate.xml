@@ -4,12 +4,12 @@
     <Label Anchor="C,C" String="Improved Chat" />
   </GridButton>
   <Container ID="Panel" Anchor="R,T" Offset="10,30" Size="550,400" ConsumeMouseButton="1" ConsumeMouseOver="1" Hidden="1">
-    <Box ID="PanelBackdrop" Anchor="C,C" Size="550,400" Color="8,14,14,255" Alpha="0.96" />
+    <Box ID="PanelBackdrop" Anchor="C,C" Size="550,400" Color="8,14,14,255" Alpha="0.80" />
     <Button ID="HeaderDrag" Anchor="L,T" Offset="124,0" Size="178,28" ConsumeMouseButton="1" ToolTip="Hold and drag to move. Double-click to expand or compact.">
       <Label ID="DragHint" Anchor="L,T" Offset="4,6" String="Drag to move" Font="TwCenMT14" />
     </Button>
-    <GridButton ID="Minimize" Anchor="R,T" Offset="0,0" Size="160,28" Style="SmallButton" ToolTip="Collapse Improved Chat">
-      <Label Anchor="C,C" String="Improved Chat" />
+    <GridButton ID="Minimize" Anchor="R,T" Offset="0,0" Size="160,28" Style="SmallButton" ToolTip="Minimize Improved Chat">
+      <Label Anchor="C,C" String="Minimize" />
     </GridButton>
     <GridButton ID="Expand" Anchor="R,T" Offset="166,0" Size="72,28" Style="SmallButton">
       <Label ID="ExpandLabel" Anchor="C,C" String="Expand" />
@@ -141,7 +141,7 @@
       </GridButton>
       <Label Anchor="L,T" Offset="12,216" WrapWidth="410" Font="TwCenMT14" String="Translate ON: type and press Enter for each reply. Preview draft is optional. Your own messages remain visible in Improved Chat." />
       <GridButton ID="Opacity" Anchor="L,T" Offset="220,282" Size="220,30" Style="SmallButton">
-        <Label ID="OpacityLabel" Anchor="C,C" String="Background: 96%" />
+        <Label ID="OpacityLabel" Anchor="C,C" String="Background: 80%" />
       </GridButton>
       <GridButton ID="Receive" Anchor="L,T" Offset="12,282" Size="182,26" Style="SmallButton">
         <Label ID="ReceiveLabel" Anchor="C,C" String="Auto receive: ON" />
