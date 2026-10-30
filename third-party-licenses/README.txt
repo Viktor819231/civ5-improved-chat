@@ -80,3 +80,15 @@ The .venv, node_modules, raw game analysis, model downloads and saves are not
 part of the public beta package. The notices above cover the identified beta
 runtime components; a future package including new dependencies needs updated
 notices. No new license for Improved Chat itself has been selected here.
+
+LUA-LOCKBOX AES-128
+DLC-only AES implementation from somesocks/lua-lockbox commit
+d91607dfc6d2a0941186bac2234e34d7b7b48365, MIT, copyright 2015 James L.
+Bundled into UI/IGT_Crypto.lua with local byte/array helpers replacing require.
+License: lua-lockbox.txt. The SIV composition is original project code.
+
+SERVER DEPENDENCIES
+miscreant 0.3.2 (MIT) supplies RFC5297 AES-SIV using WebCrypto. Upstream is
+archived and unaudited; pinning and interoperability tests do not replace audit.
+fflate 0.8.3 (MIT) generates private ZIP downloads. See package-lock.json.
+These JavaScript packages run on the hosted service, not inside Civ V.
