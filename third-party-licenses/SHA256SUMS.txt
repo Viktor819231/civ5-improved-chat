@@ -1,0 +1,11 @@
+Third-party license file integrity (SHA-256), prepared 2026-10-30.
+Files copied verbatim from installed distributions or downloaded official sources.
+
+7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a  OpenSSL-3.5.9-LICENSE.txt
+0598064c7d2718e38d7914a7d08343b2fa008e3bea9ebba2aa7a6ffa5900dd64  PyInstaller-6.22.3-COPYING.txt
+91d0baaff00773038e72c0a1fc9d5d2d38706b7a2b9c04f34296608f931b9cd0  PyInstaller-hooks-contrib-2026.9-LICENSE.txt
+62bec384df47b0328307db41455ff6ea2559e5546b394ac69148561b21703120  Python-3.13.17-LICENSE.txt
+44ca9f793055c8e32fc65f65a4f5bcf813a33f5bdaaa084067dd617a4ed3cc70  SQLite-copyright.html
+c0a69a2bfd757361ec7e6143973b103c90409316b49e9c88db26ad6388e79f16  Tcl-8.6.15-license.terms
+0d1e4405f6273f091732764ed89b57066be63ce64869be6c71ea337dc4f2f9b5  Tk-8.6-license.terms
+e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96  Unicode-LICENSE-V3.txt
