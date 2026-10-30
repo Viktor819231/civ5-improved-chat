@@ -54,3 +54,5 @@ htmlcov/
 *.p12
 .DS_Store
 Thumbs.db
+
+/cloudflare/edge/public/dlc-template.zip
