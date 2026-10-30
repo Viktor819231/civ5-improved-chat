@@ -1,76 +1,52 @@
 # Improved Chat for Civilization V
 
-An English-perspective multiplayer chat overlay for the lobby and in-game chat.
-Original project code is [MIT licensed](LICENSE.txt).
+Translate multiplayer chat, whisper to individual players, and keep local player
+notes in a compact overlay. Works in the lobby and in-game chat.
 
-**Beta:** online translation and clipboard access currently require the included
-Windows companion to remain running. This is not a companion-free DLC release.
+**[Download the Windows beta](https://github.com/Viktor819231/civ5-improved-chat/releases/tag/v0.9.1-beta)**
+
+The current beta requires the included Windows companion to stay running for
+translation and clipboard access. No email, Steam login or API key setup is
+needed for the default translation service.
 
 ## Features
 
-- Compact and expanded chat, a draggable header, window size settings and turn
-  information on hover.
-- Incoming non-Latin messages can translate automatically to English. Individual
-  messages can be translated manually by choosing their source language.
-- Russian written using Latin letters has an explicit **Russian (Latin letters)**
-  source option. Informal spelling and mixed-language chat remain approximate.
-- Translate an outgoing draft or send its original text, to all players or an
-  individual player. Long messages use paced numbered parts.
-- Private-chat styling, Civ icon picker, explicit clipboard buttons, local
-  nicknames, player notes and recorded encounter history.
+- Translate incoming messages into English automatically for non-Latin text,
+  or manually choose the source language for any message.
+- Read Russian written in Latin letters using **Russian (Latin letters)**.
+- Translate your replies or send the original text, to everyone or one player.
+- Expand, collapse, resize and drag the chat window. Turn details appear on hover.
+- Use Civ icons, message colours, local nicknames, player notes and encounter history.
 
-The target is stock Civ V with EUI support. Unsupported gameplay mods cause the
-overlay to disable when detected. This check cannot detect every modified game
-file or guarantee compatibility with arbitrary modpacks.
+## Install
 
-## Install the Windows beta
+1. Download **Improved-Chat-beta.zip** from the release page and extract it.
+2. Close Civ V and run **Install Improved Chat.cmd**. For manual installation,
+   copy only the inner **InGameTranslateMod** folder into **Assets\DLC**.
+3. Start **InGameTranslateCompanion.exe**, choose **Enable online translation**,
+   and keep it running.
+4. Launch Civ V and open **Improved Chat** in the lobby or game.
 
-1. Extract **Improved-Chat-beta.zip** to a folder you will keep.
-2. Exit Civ V and run **Install Improved Chat.cmd**, or copy **only the inner
-   InGameTranslateMod folder** into the game's **Assets\DLC** folder.
-3. Run **InGameTranslateCompanion.exe**. On first use choose **Enable online
-   translation**. Keep the companion running while playing.
-4. Start Civ V and open **Improved Chat** in the lobby or game.
+The beta targets stock Civ V with EUI support. Other gameplay mods are not
+supported. Install one copy of the DLC; updates to its UI require a game restart.
+The DLC-only download needs the matching companion from the full package.
 
-Do not install two copies of the DLC. Updating the UI requires a full game
-restart. The DLC-only ZIP needs a matching companion from the same beta build.
-Full usage and uninstall instructions: [README.txt](README.txt).
+See the [user guide](docs/USER_GUIDE.txt) for controls, troubleshooting and uninstall.
 
-The default hosted beta needs no email, Steam login or manually entered API key.
-It assigns an installation credential automatically after opt-in. Its current
-allowance is 2,000 service requests and 100,000 UTF-8 input bytes per installation
-per UTC day. Shared service/network limits also apply. One chat message can use
-multiple requests. An installation is not a verified person or Steam account.
+## Privacy and availability
 
-## Privacy and hosting
+Translation sends message text to the configured service. Player notes and
+encounter history stay on your PC; clipboard reads require a Paste action.
+The hosted beta allows 2,000 requests and 100,000 UTF-8 input bytes per installation
+per UTC day, with shared service and network limits. One message can use multiple
+requests. Machine translations, especially slang and informal spelling, can be imperfect.
 
-Online translation sends selected message text to the chosen service; the
-service also receives the connection IP. Player notes, local Steam-ID lookups
-and encounter history remain on the user's PC. Clipboard reads require an
-explicit Paste action.
+## Development
 
-The open-source client contains no shared account API secret. The server owns
-registration, expiry, rate limits, daily quotas and concurrency reservations.
-The public endpoint uses a neutral Pages hostname and an internal service
-binding. Direct account-scoped Worker and preview URLs are disabled. Packaging
-checks source files and compiled companion modules for accidental exposure of
-account-scoped API addresses.
-Current request/input-byte limits **are not guaranteed dollar billing caps**.
-Read [SECURITY.txt](SECURITY.txt) before exposing your own hosted endpoint and
-[cloudflare/README.txt](cloudflare/README.txt) for its API and configuration.
+- [Build and test](docs/DEVELOPMENT.md)
+- [Host the translation service](docs/HOSTING.md)
+- [Security and privacy](SECURITY.md)
+- [Third-party notices](third-party-licenses/README.txt)
 
-## Source layout and development
-
-| Folder | Purpose |
-| --- | --- |
-| `DLC/InGameTranslateMod/UI` | Shared Civ V Lua/XML overlay and local journal |
-| `companion` | Windows companion, SQLite mailbox, providers and credentials |
-| `cloudflare` | Translation proxy and server-side abuse/usage controls |
-| `tests` | Python/Lua UI and client tests |
-| `preview` | Local browser design canvas using sample data |
-| `tools`, `release-support` | Packaging, verification and Windows installer |
-
-Build and test instructions: [SOURCE_README.txt](SOURCE_README.txt).
-Generated stock game-layout wrappers are excluded from Git and generated from
-the developer's installed Civ V. Bundled runtimes retain their separate
-[third-party licenses](THIRD_PARTY_NOTICES.txt).
+Original project code is [MIT licensed](LICENSE.txt). Game-layout wrappers are
+generated from your installed Civ V and are not included in the source repository.

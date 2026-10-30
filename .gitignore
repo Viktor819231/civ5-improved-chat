@@ -34,3 +34,23 @@ DLC/InGameTranslateMod/UI/InGameTranslateLobby.lua
 DLC/InGameTranslateMod/UI/InGameTranslateLobby.xml
 preview/*-preview.png
 tools/STEAM_BINDING_NOTES.txt
+
+# Local assistant/editor state and transient development files.
+/AGENTS.md
+/CLAUDE.md
+.claude/
+.codex/
+.vscode/
+.idea/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+*.tmp
+*.bak
+*.pfx
+*.p12
+.DS_Store
+Thumbs.db

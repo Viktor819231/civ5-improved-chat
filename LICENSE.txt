@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Scope: this license covers original Improved Chat code and documentation.
-Third-party components retain their own licenses; see THIRD_PARTY_NOTICES.txt.
+Third-party components retain their own licenses; see third-party-licenses/README.txt.
 Civilization V assets and generated copies of its game layouts are not
 relicensed under MIT. The source archive omits those generated game layouts;
 the build tool generates them from the developer's own installed game.
