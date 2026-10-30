@@ -47,12 +47,14 @@ local function CompatibilityProblem()
     return nil;
 end
 
+local compatibilityDisabled = false;
 local function ShowCompatibilityDisabled(reason)
+    compatibilityDisabled = true;
     Controls.Panel:SetHide(true);
     if Controls.EmojiPanel then Controls.EmojiPanel:SetHide(true);end
     if Controls.PlayerMenu then Controls.PlayerMenu:SetHide(true);end
     if Controls.ForcePanel then Controls.ForcePanel:SetHide(true); end
-    Controls.Toggle:SetHide(false);
+    Controls.Toggle:SetHide(true);
     Controls.Toggle:SetDisabled(true);
     Controls.Toggle:SetToolTipString(reason);
     print("Improved Chat compatibility guard: " .. reason);
@@ -64,7 +66,10 @@ if initialCompatibilityProblem then
     return;
 end
 
+IGT_Config = false; -- PERSONALIZED_DOWNLOAD_CONFIG
 include("IGT_Text");
+include("IGT_Crypto");
+include("IGT_Native");
 include("IGT_History");
 local isLobby = IGT_LOBBY == true;
 local function LocalPlayer()
@@ -73,6 +78,8 @@ local function LocalPlayer()
 end
 
 local db;
+local native;
+local requestTable = IGT_Config and "native_requests" or "requests";
 local session = "";
 local pending = {};
 local chatRows = {};
@@ -86,7 +93,7 @@ local recipientID = -1;
 local selectedRecipientName;
 local recipientNames = {};
 local recipientSignature = "";
-local translateOnSend = false;
+local translateOnSend = IGT_Config ~= false;
 local submissionGeneration = 0;
 local rosterElapsed = 0;
 local compatibilityElapsed = 0;
@@ -363,7 +370,7 @@ local function RefreshSendState()
     end
     Controls.CancelSend:SetDisabled(not busy);
     Controls.CancelSend:SetHide(not busy);
-    Controls.Paste:SetHide(busy);
+    Controls.Paste:SetHide(busy or IGT_Config ~= false);
 end
 
 local function RefreshLabels()
@@ -636,7 +643,7 @@ local function SetupDropdowns()
 end
 
 local function StartSession()
-    Query("CREATE TABLE IF NOT EXISTS requests(id INTEGER PRIMARY KEY AUTOINCREMENT, session TEXT, kind TEXT, source TEXT, target TEXT, text TEXT, status TEXT, result TEXT, detected TEXT, error TEXT, created REAL, started REAL)");
+    Query("CREATE TABLE IF NOT EXISTS " .. requestTable .. "(id INTEGER PRIMARY KEY AUTOINCREMENT, session TEXT, kind TEXT, source TEXT, target TEXT, text TEXT, status TEXT, result TEXT, detected TEXT, error TEXT, created REAL, started REAL)");
     Query("CREATE TABLE IF NOT EXISTS igt_state(key TEXT PRIMARY KEY,value TEXT)");
     for _, setting in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('window_width','window_height')")) do
         local value=tonumber(setting.value);
@@ -668,6 +675,13 @@ local function StartSession()
     State("clipboard_paste_request", "");
     State("clipboard_paste_token", "");
     State("clipboard_copy", "");
+    if IGT_Config then
+        native = IGT_Native.Open(IGT_Config,Query,State,session);
+        Controls.Paste:SetHide(true); Controls.CopyDraft:SetHide(true); Controls.CopyLast:SetHide(true);
+        Controls.OnlineTranslation:SetHide(false);
+        Controls.OnlineTranslationLabel:SetText(native.Enabled() and "Online translation: ON" or "Enable online translation");
+        Controls.TranslationPrivacy:SetHide(false);
+    end
     pending = {};
     pasteToken = nil;
     sendQueue = {};
@@ -682,13 +696,13 @@ end
 
 local function Enqueue(kind, text, source, target, info)
     if not initialized then SetStatus("Translator database is not ready."); return; end
-    local online = Query("SELECT value FROM igt_state WHERE key='online_translation_enabled'");
-    if online[1] and online[1].value == "0" then SetStatus("Enable online translation in the companion first, then submit again."); return; end
+    local online = Query("SELECT value FROM igt_state WHERE key=" .. Quote(IGT_Config and "native_online_enabled" or "online_translation_enabled"));
+    if online[1] and online[1].value == "0" then SetStatus(IGT_Config and "Enable online translation in Settings first, then submit again." or "Enable online translation in the companion first, then submit again."); return; end
     if not text or not text:find("%S") then SetStatus("Type or paste a message first."); return; end
     local count = 0;
     for _ in pairs(pending) do count = count + 1; end
-    if count >= 50 then SetStatus("Translation queue is full. Wait for the companion."); return; end
-    Query("INSERT INTO requests(session,kind,source,target,text,status,created) VALUES(" ..
+    if count >= 50 then SetStatus("Translation queue is full. Wait for the current requests."); return; end
+    Query("INSERT INTO " .. requestTable .. "(session,kind,source,target,text,status,created) VALUES(" ..
         Quote(session) .. "," .. Quote(kind) .. "," .. Quote(source) .. "," .. Quote(target) .. "," ..
         Quote(text) .. ",'pending',CAST(strftime('%s','now') AS REAL))");
     local rows = Query("SELECT last_insert_rowid() AS id");
@@ -696,7 +710,7 @@ local function Enqueue(kind, text, source, target, info)
     info.kind, info.target, info.original = kind, target, text;
     pending[tonumber(rows[1].id)] = info;
     RefreshSendState();
-    SetStatus("Queued for translation. Start the companion if it is offline.");
+    SetStatus(IGT_Config and "Translating..." or "Queued for translation. Start the companion if it is offline.");
     return true;
 end
 
@@ -843,9 +857,10 @@ end
 local function Poll()
     if not initialized then return; end
     local state = {};
-    for _, row in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('heartbeat','session','online_translation_enabled','clipboard_paste_token','clipboard_paste_result')")) do
+    for _, row in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('heartbeat','session','online_translation_enabled','native_online_enabled','clipboard_paste_token','clipboard_paste_result')")) do
         state[row.key] = row.value;
     end
+    if native then state.online_translation_enabled = state.native_online_enabled; end
     if state.session and state.session ~= session then
         sendQueue = {};
         initialized = false;
@@ -854,7 +869,7 @@ local function Poll()
         return;
     end
     local nowRows = Query("SELECT CAST(strftime('%s','now') AS REAL) AS now");
-    local alive = tonumber(state.heartbeat or 0) > tonumber(nowRows[1].now) - 8;
+    local alive = native ~= nil or tonumber(state.heartbeat or 0) > tonumber(nowRows[1].now) - 8;
     if state.online_translation_enabled == "0" or (state.heartbeat and not alive) then
         local translating = false;
         for _, info in pairs(pending) do
@@ -863,7 +878,7 @@ local function Poll()
         for _, item in ipairs(sendQueue) do if item.batch.translated then translating = true; break; end end
         if translating then CancelSend(); SetStatus("Online translation stopped; queued sends cancelled. Submit your draft again after reconnecting."); end
     end
-    local rows = Query("SELECT id,status,result,detected,error FROM requests WHERE session=" .. Quote(session) ..
+    local rows = Query("SELECT id,status,result,detected,error FROM " .. requestTable .. " WHERE session=" .. Quote(session) ..
         " AND (status='done' OR status='error') ORDER BY id");
     for _, row in ipairs(rows) do
         local id = tonumber(row.id);
@@ -913,7 +928,7 @@ local function Poll()
         end
     end
     RefreshSendState();
-    Controls.CompanionStatus:SetText(alive and "Companion: connected" or "Companion: offline - run InGameTranslateCompanion.exe");
+    Controls.CompanionStatus:SetText(native and (native.Enabled() and "Online translation enabled - no companion needed" or "Online translation disabled") or alive and "Companion: connected" or "Companion: offline - run InGameTranslateCompanion.exe");
     if pasteToken and state.clipboard_paste_token == pasteToken then
         Controls.Draft:SetText(tostring(state.clipboard_paste_result or ""):gsub("[\r\n\t]", " "));
         InvalidateDraft();
@@ -939,6 +954,7 @@ local function UpdateWindowDrag()
 end
 
 local function Update(delta)
+    if native and initialized then Safe(function() native.Update(delta); end); end
     if not initialized then return; end
     UpdateWindowDrag();
     compatibilityElapsed = compatibilityElapsed + delta;
@@ -951,6 +967,7 @@ local function Update(delta)
             return;
         end
     end
+    if native then Safe(function() native.Update(delta); end); end
     historyElapsed = historyElapsed + delta;
     if historyElapsed >= 10 then
         historyElapsed = 0;
@@ -1088,6 +1105,14 @@ end);
 Controls.CloseProfiles:RegisterCallback(Mouse.eLClick, function() ShowPage("chat"); end);
 Controls.ProfileSave:RegisterCallback(Mouse.eLClick, function() Safe(function() SaveProfile(false); end); end);
 Controls.ProfileDelete:RegisterCallback(Mouse.eLClick, function() Safe(function() SaveProfile(true); end); end);
+Controls.OnlineTranslation:RegisterCallback(Mouse.eLClick, function()
+    if native then
+        native.Enable(not native.Enabled());
+        Controls.OnlineTranslationLabel:SetText(native.Enabled() and "Online translation: ON" or "Enable online translation");
+        SetStatus(native.Enabled() and "Online translation enabled." or "Online translation disabled.");
+        if not native.Enabled() then CancelSend(); end
+    end
+end);
 Controls.CloseSettings:RegisterCallback(Mouse.eLClick, function() ShowPage("chat"); end);
 Controls.SendMode:RegisterCallback(Mouse.eLClick, function() translateOnSend = not translateOnSend; RefreshLabels(); end);
 Controls.Receive:RegisterCallback(Mouse.eLClick, function() receiving = not receiving; RefreshLabels(); end);
@@ -1171,6 +1196,7 @@ if not isLobby then Events.GameplaySetActivePlayer.Add(function()
 end); end
 
 ContextPtr:SetInputHandler(function(uiMsg, key)
+    if compatibilityDisabled then return false; end
     if uiMsg == KeyEvents.KeyDown and key == Keys.VK_ESCAPE then
         if not Controls.EmojiPanel:IsHidden() then Controls.EmojiPanel:SetHide(true);return true;end
         if not Controls.PlayerMenu:IsHidden() then Controls.PlayerMenu:SetHide(true);contextPlayer=nil;return true;end
@@ -1192,6 +1218,7 @@ Controls.HeaderDrag:RegisterCallback(Mouse.eLClick,function() end);
 if Mouse.eLDblClick then Controls.HeaderDrag:RegisterCallback(Mouse.eLDblClick,function() dragging=nil;ShowPage("chat",expanded);end); end
 
 Initialize = function()
+    if compatibilityDisabled then return; end
     local reason = CompatibilityProblem();
     if reason then initialized = false; ShowCompatibilityDisabled(reason); return; end
     db = Modding.OpenUserData("InGameTranslateMod", 1);
@@ -1209,6 +1236,7 @@ end
 -- lobby owns a mailbox; it must never steal the in-game translator's session.
 if isLobby then
     ContextPtr:SetShowHideHandler(function(hidden)
+        if compatibilityDisabled then return; end
         print("IGT lobby visibility", hidden);
         Safe(function()
             if hidden then

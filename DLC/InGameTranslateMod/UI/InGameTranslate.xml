@@ -156,6 +156,10 @@
       <GridButton ID="CopyDraft" Anchor="L,T" Offset="12,390" Size="82,30" Style="SmallButton">
         <Label Anchor="C,C" String="Copy draft" />
       </GridButton>
+      <GridButton ID="OnlineTranslation" Anchor="L,T" Offset="12,390" Size="260,30" Style="SmallButton" Hidden="1">
+        <Label ID="OnlineTranslationLabel" Anchor="C,C" String="Enable online translation" />
+      </GridButton>
+      <Label ID="TranslationPrivacy" Anchor="L,T" Offset="454,380" WrapWidth="180" Font="TwCenMT14" String="Online translation sends selected messages to Cloudflare. Notes and history stay on your PC. Daily usage limits apply." Hidden="1" />
       <Label ID="CompanionStatus" Anchor="L,T" Offset="12,426" String="Companion: waiting" Font="TwCenMT14" />
       <ScrollPanel ID="PreviewScroll" Anchor="L,T" Offset="12,460" Size="510,32" Vertical="1" AutoScrollBar="1">
         <Label ID="PreviewText" Anchor="L,T" WrapWidth="495" Font="TwCenMT14" String="Choose a language and recipient. Enter sends your message." />
