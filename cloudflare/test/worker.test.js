@@ -228,3 +228,32 @@ test('daily cleanup removes expired credentials and old hashed network data',asy
   assert.ok(!s.storage.data.has('token:expired'));assert.ok(!s.storage.data.has('net:old'));
   assert.ok(s.storage.data.has('registration:install:'+enrollment(1).installationId));
 });
+
+
+test('DLC enrollment, encrypted translation, replay, tamper, revocation and quotas',async()=>{
+  const {cipher,unhex,hex,utf8,requestAD,responseAD}=await import('../src/dlc-crypto.js');
+  const s=setup({DLC_ENABLED:'true',DLC_KEY_SECRET:'a'.repeat(64),REGISTRATION_ENABLED:'true',IP_HASH_SECRET:'test-network-secret-at-least-32-characters',IP_LIMITS_ENABLED:'true',ACCOUNT_DAILY_REQUESTS:'1'});
+  const enrolled=await s.request('/v2/dlc/enroll');assert.equal(enrolled.status,200);
+  const {id,key}=await enrolled.json(),c=await cipher(unhex(key));
+  const run=async(seq,body='ru\nen\nПривет',alter=false)=>{
+    const sealed=await c.seal(utf8(body),requestAD(id,String(seq)));
+    if(alter)sealed[20]^=1;
+    const response=await s.request('/v2/dlc/'+id+'/'+seq+'/'+hex(sealed),{method:'GET'});
+    if(!response.ok)return {status:response.status};
+    const result=new TextDecoder().decode(await c.open(unhex(await response.text()),responseAD(id,String(seq),sealed.slice(0,16))));
+    return {status:response.status,result};
+  };
+  assert.match((await run(1)).result,/^ok\nru\nHello$/);assert.equal(s.calls(),1);
+  assert.match((await run(1)).result,/^error/);assert.equal(s.calls(),1);
+  assert.equal((await run(2,undefined,true)).status,403);assert.equal(s.calls(),1);
+  assert.match((await run(2)).result,/allowance/);assert.equal(s.calls(),1);
+  await s.request('/admin/installations/revoke',{admin:true,data:{installationId:id}});
+  assert.match((await run(3)).result,/revoked/);assert.equal(s.calls(),1);
+});
+
+test('DLC switch and missing key fail closed before enrollment',async()=>{
+  for(const vars of [{DLC_ENABLED:'false'},{DLC_ENABLED:'true'}]){
+    const s=setup({...vars,REGISTRATION_ENABLED:'true',IP_HASH_SECRET:'test-network-secret-at-least-32-characters'});
+    assert.equal((await s.request('/v2/dlc/enroll')).status,503);assert.equal(s.calls(),0);
+  }
+});
