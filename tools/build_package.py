@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GUID = '{c74fe31f-6834-496f-87dc-fb1c471b7fc8}'
 
 
-def build(game: Path, generate_only: bool = False):
+def build(game: Path, generate_only: bool = False, output_dir: Path | None = None):
     dlc = ROOT / 'DLC/InGameTranslateMod'
     # One stock staging room is shared by all three game versions. EUI does not
     # replace it. Add only a child context, retaining the normal lobby controls.
@@ -58,18 +58,23 @@ def build(game: Path, generate_only: bool = False):
     if generate_only:
         print('Generated native DLC layouts and lobby scripts.')
         return
-    for required in [ROOT / 'dist/InGameTranslateCompanion.exe',ROOT / 'README.txt',ROOT / 'THIRD_PARTY_NOTICES.txt',ROOT / 'LICENSE.txt']:
+    release_docs = {
+        ROOT / 'docs/USER_GUIDE.txt': 'README.txt',
+        ROOT / 'third-party-licenses/README.txt': 'THIRD_PARTY_NOTICES.txt',
+        ROOT / 'LICENSE.txt': 'LICENSE.txt',
+    }
+    for required in [ROOT / 'dist/InGameTranslateCompanion.exe', *release_docs]:
         if not required.is_file():
             raise SystemExit('Missing release input: ' + str(required))
-    package = ROOT / 'release/Improved-Chat-beta'
+    output_dir = output_dir or ROOT / 'release'
+    package = output_dir / 'Improved-Chat-beta'
     package.mkdir(parents=True, exist_ok=True)
     shutil.copytree(dlc, package / 'InGameTranslateMod', dirs_exist_ok=True)
     exe = ROOT / 'dist/InGameTranslateCompanion.exe'
     if exe.exists():
         shutil.copy2(exe, package / exe.name)
-    for name in ['README.txt', 'THIRD_PARTY_NOTICES.txt','LICENSE.txt']:
-        if (ROOT / name).exists():
-            shutil.copy2(ROOT / name, package / name)
+    for source, name in release_docs.items():
+        shutil.copy2(source, package / name)
     for name in ['Install Improved Chat.cmd', 'install.ps1']:
         shutil.copy2(ROOT / 'release-support' / name, package / name)
     licenses = ROOT / 'third-party-licenses'
@@ -84,12 +89,12 @@ def build(game: Path, generate_only: bool = False):
     manifest = package / 'MANIFEST.sha256'
     manifest.write_text(''.join(hashlib.sha256(f.read_bytes()).hexdigest() + '  ' + f.relative_to(package).as_posix() + '\n' for f in sorted(files)),encoding='utf-8')
     files.append(manifest)
-    archive = ROOT / 'release/Improved-Chat-beta.zip'
+    archive = output_dir / 'Improved-Chat-beta.zip'
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
         for file in files:
             z.write(file, file.relative_to(package))
     print(archive)
-    dlc_archive=ROOT / 'release/Improved-Chat-DLC.zip'
+    dlc_archive=output_dir / 'Improved-Chat-DLC.zip'
     with zipfile.ZipFile(dlc_archive,'w',zipfile.ZIP_DEFLATED) as z:
         for file in sorted(dlc.rglob('*')):
             if file.is_file():
@@ -101,5 +106,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--game', type=Path, default=Path("C:/Program Files (x86)/Steam/steamapps/common/Sid Meier's Civilization V"))
     parser.add_argument('--generate-only', action='store_true', help='Regenerate native DLC for development/tests without packaging a release')
+    parser.add_argument('--output-dir', type=Path, help='Write verification builds outside the released artifact directory')
     args = parser.parse_args()
-    build(args.game,args.generate_only)
+    build(args.game,args.generate_only,args.output_dir)

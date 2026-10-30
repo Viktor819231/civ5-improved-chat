@@ -1,9 +1,13 @@
 """Ensure bootstrap layouts preserve stock UI and contain the right contexts."""
 from pathlib import Path
+import argparse
 import xml.etree.ElementTree as ET
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--release',type=Path,default=root/'release/Improved-Chat-beta.zip')
+release=parser.parse_args().release
 game = Path("C:/Program Files (x86)/Steam/steamapps/common/Sid Meier's Civilization V")
 dlc = root / 'DLC/InGameTranslateMod'
 for path in [*dlc.rglob('*.xml'), *dlc.glob('*.Civ5Pkg')]:
@@ -20,7 +24,7 @@ assert patched.replace(addition, '') == original
 assert (dlc / 'UI/InGameTranslateLobby.lua').exists()
 assert 'include(' not in (dlc / 'UI/InGameTranslateLobby.lua').read_text(encoding='utf-8')
 assert 'String="Improved Chat"' in (dlc / 'UI/InGameTranslateLobby.xml').read_text(encoding='utf-8')
-with zipfile.ZipFile(root / 'release/Improved-Chat-beta.zip') as archive:
+with zipfile.ZipFile(release) as archive:
     assert archive.testzip() is None
     for path in ['InGameTranslateCompanion.exe', 'README.txt','Install Improved Chat.cmd','install.ps1','THIRD_PARTY_NOTICES.txt','MANIFEST.sha256',
                  'InGameTranslateMod/UI/StagingRoom.xml',
