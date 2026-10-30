@@ -36,7 +36,8 @@
     "GLOBAL_CONCURRENCY": "20",
     "MAX_INPUT_BYTES": "1000",
     "REGISTRATION_ENABLED": "false",
-    "IP_LIMITS_ENABLED": "false"
+    "IP_LIMITS_ENABLED": "false",
+    "DLC_ENABLED": "false"
   },
   "observability": {
     "enabled": false
@@ -114,7 +115,8 @@
         "IP_DAILY_REQUESTS": "6000",
         "IP_DAILY_INPUT_BYTES": "250000",
         "SUBNET_DAILY_REQUESTS": "12000",
-        "SUBNET_DAILY_INPUT_BYTES": "500000"
+        "SUBNET_DAILY_INPUT_BYTES": "500000",
+        "DLC_ENABLED": "true"
       },
       "preview_urls": false
     }
