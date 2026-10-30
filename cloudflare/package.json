@@ -1,0 +1,7 @@
+{
+  "name": "improved-chat-translation-worker",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test", "dev": "wrangler dev" },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

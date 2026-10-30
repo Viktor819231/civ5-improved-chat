@@ -1,0 +1,123 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "improved-chat-translation",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-30",
+  "workers_dev": false,
+  "ai": {
+    "binding": "AI"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GATE",
+        "class_name": "TranslationGate"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "TranslationGate"
+      ]
+    }
+  ],
+  "vars": {
+    "TRANSLATION_ENABLED": "false",
+    "ADMIN_PROVISIONING_ENABLED": "false",
+    "TOKEN_TTL_SECONDS": "604800",
+    "ACCOUNT_DAILY_REQUESTS": "1000",
+    "ACCOUNT_DAILY_INPUT_BYTES": "100000",
+    "ACCOUNT_REQUESTS_PER_MINUTE": "30",
+    "ACCOUNT_CONCURRENCY": "2",
+    "GLOBAL_DAILY_REQUESTS": "5000",
+    "GLOBAL_DAILY_INPUT_BYTES": "500000",
+    "GLOBAL_CONCURRENCY": "20",
+    "MAX_INPUT_BYTES": "1000",
+    "REGISTRATION_ENABLED": "false",
+    "IP_LIMITS_ENABLED": "false"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "env": {
+    "private_test": {
+      "name": "improved-chat-translation-private",
+      "workers_dev": false,
+      "ai": {
+        "binding": "AI"
+      },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "GATE",
+            "class_name": "TranslationGate"
+          }
+        ]
+      },
+      "vars": {
+        "TRANSLATION_ENABLED": "true",
+        "ADMIN_PROVISIONING_ENABLED": "false",
+        "TOKEN_TTL_SECONDS": "604800",
+        "ACCOUNT_DAILY_REQUESTS": "50",
+        "ACCOUNT_DAILY_INPUT_BYTES": "20000",
+        "ACCOUNT_REQUESTS_PER_MINUTE": "10",
+        "ACCOUNT_CONCURRENCY": "1",
+        "GLOBAL_DAILY_REQUESTS": "50",
+        "GLOBAL_DAILY_INPUT_BYTES": "20000",
+        "GLOBAL_CONCURRENCY": "1",
+        "MAX_INPUT_BYTES": "500"
+      },
+      "preview_urls": false
+    },
+    "public_beta": {
+      "name": "improved-chat-translation-beta",
+      "workers_dev": false,
+      "ai": {
+        "binding": "AI"
+      },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "GATE",
+            "class_name": "TranslationGate"
+          }
+        ]
+      },
+      "vars": {
+        "TRANSLATION_ENABLED": "true",
+        "ADMIN_PROVISIONING_ENABLED": "false",
+        "REGISTRATION_ENABLED": "true",
+        "IP_LIMITS_ENABLED": "true",
+        "TOKEN_TTL_SECONDS": "2592000",
+        "ACCOUNT_DAILY_REQUESTS": "2000",
+        "ACCOUNT_DAILY_INPUT_BYTES": "100000",
+        "ACCOUNT_REQUESTS_PER_MINUTE": "60",
+        "ACCOUNT_CONCURRENCY": "2",
+        "GLOBAL_DAILY_REQUESTS": "10000",
+        "GLOBAL_DAILY_INPUT_BYTES": "500000",
+        "GLOBAL_CONCURRENCY": "4",
+        "MAX_INPUT_BYTES": "500",
+        "IP_REGISTRATIONS_PER_DAY": "3",
+        "SUBNET_REGISTRATIONS_PER_DAY": "12",
+        "GLOBAL_REGISTRATIONS_PER_DAY": "200",
+        "IP_REQUESTS_PER_MINUTE": "120",
+        "SUBNET_REQUESTS_PER_MINUTE": "240",
+        "IP_REQUESTS_PER_DAY": "20000",
+        "GLOBAL_ADMISSIONS_PER_DAY": "40000",
+        "IP_ENROLLMENT_PER_MINUTE": "10",
+        "INSTALLATION_TOKEN_ISSUES_PER_DAY": "12",
+        "IP_TOKEN_ISSUES_PER_HOUR": "30",
+        "IP_TOKEN_ISSUES_PER_DAY": "100",
+        "GLOBAL_TOKEN_ISSUES_PER_DAY": "1000",
+        "IP_DAILY_REQUESTS": "6000",
+        "IP_DAILY_INPUT_BYTES": "250000",
+        "SUBNET_DAILY_REQUESTS": "12000",
+        "SUBNET_DAILY_INPUT_BYTES": "500000"
+      },
+      "preview_urls": false
+    }
+  },
+  "preview_urls": false
+}
