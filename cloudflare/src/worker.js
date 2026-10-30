@@ -1,3 +1,4 @@
+import {dlcRequest} from './dlc.js';
 const MODEL = '@cf/meta/m2m100-1.2b';
 const LANGUAGES = new Set(['en','ru','uk','ko','fr','de','es','pl','pt','tr','it','nl','sv','zh','ja','ar']);
 const bytes = s => new TextEncoder().encode(s).length;
@@ -53,9 +54,10 @@ async function body(request, max = 4096) {
 const gate = env => env.GATE.get(env.GATE.idFromName('global-v1'));
 const call = async (env,path,data) => gate(env).fetch(new Request('https://internal'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}));
 
-export default {
+const worker = {
   async fetch(request,env) {
     const url=new URL(request.url);
+    if(url.pathname.startsWith('/v2/dlc/'))return dlcRequest(request,env,{call,networkIdentity,digest,translate:(req,e)=>worker.fetch(req,e)});
     if(url.pathname==='/health') return json({service:'Improved Chat',translationEnabled:env.TRANSLATION_ENABLED==='true',publicRegistration:env.REGISTRATION_ENABLED==='true'&&typeof env.IP_HASH_SECRET==='string'&&env.IP_HASH_SECRET.length>=32});
     const enrollment=['/v1/installations/register','/v1/installations/renew'].includes(url.pathname);
     let network;
@@ -128,6 +130,8 @@ export default {
   }
 };
 
+export default worker;
+
 export class TranslationGate {
   constructor(ctx,env){this.ctx=ctx;this.env=env;}
   async fetch(request) {
@@ -183,6 +187,18 @@ export class TranslationGate {
         await tx.put('ipissuance:'+data.ipKey,ipIssue);await tx.put('allissuance',allIssue);
         await tx.put('registration:'+subject,{secretHash:registration?.secretHash??data.secretHash,version,lastSeen:now});
         return issue(subject);
+      }
+      if(path==='/dlc-bind') {
+        const credential=await tx.get('token:'+data.tokenHash);
+        if(!credential||credential.expires<=now||credential.version!==(await tx.get('version:'+credential.subject)??0))return json({error:'Invalid credential'},403);
+        await tx.put('dlc:'+credential.subject,{version:credential.version,seq:0});
+        return json({bound:true});
+      }
+      if(path==='/dlc-claim') {
+        const record=await tx.get('dlc:'+data.subject);
+        if(!record||record.version!==(await tx.get('version:'+data.subject)??0)||!Number.isSafeInteger(data.seq)||data.seq<=record.seq)return json({error:'Expired request'},403);
+        await tx.put('dlc:'+data.subject,{...record,seq:data.seq});
+        return issue(data.subject);
       }
       if(path==='/issue') {
         return issue(data.subject);
