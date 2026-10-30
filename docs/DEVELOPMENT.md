@@ -1,8 +1,9 @@
 # Development
 
-Improved Chat has three parts: the native Civ V overlay, a Windows companion,
-and a hosted translation API. Civ V and the companion communicate through a
-local SQLite mailbox. Only the native overlay sends messages to game chat.
+The current beta has a native Civ V overlay and a hosted translation API.
+Personalized HTTPS downloads supply installation credentials; Lua handles
+encrypted asynchronous requests directly. Only the overlay sends game chat.
+The companion code remains for legacy builds and regression tests.
 
 | Path | Purpose |
 | --- | --- |
@@ -14,7 +15,21 @@ local SQLite mailbox. Only the native overlay sends messages to game chat.
 | `tools/` | Build, archive and release verification scripts |
 | `release-support/` | Windows installer |
 
-## Build the Windows package
+## Build the companion-free download
+
+Create the Python environment and install requirements-dev.txt, then run:
+
+```powershell
+.venv\Scripts\python.exe tools\build_dlc_template.py
+.venv\Scripts\python.exe -m unittest discover -s tests -q
+.venv\Scripts\python.exe tools\build_source_archive.py
+```
+
+The generated template is keyless and is not an install-ready public ZIP.
+The hosted download personalizes it. Never upload a user ZIP to GitHub.
+See HOSTING.md for the backend and Pages deployment commands.
+
+## Build the legacy companion package
 
 Use Python 3.13 and a local installation of Civ V. From the repository root:
 
@@ -69,3 +84,20 @@ inspects compiled companion modules as well.
 Keep [third-party notices](../third-party-licenses/README.txt) with redistributed
 binaries. The current Windows executable is unsigned; users can build it from
 source. See the [security policy](../SECURITY.md) for the service's trust boundary.
+
+
+## Native companion-free build
+
+The download injects IGT_Config into both shared and generated lobby scripts.
+Source contains a false placeholder for compatibility with companion builds.
+IGT_Native processes native_requests in the same local database, preserving
+notes/history while preventing the old companion from claiming native jobs.
+Online translation defaults on; an explicit disable choice is preserved.
+Enable/disable preferences and sequence state are separate. Never copy keyed Lua back into source.
+
+Run tools/build_dlc_template.py after UI edits. tests/test_siv.py cross-checks
+Lua 5.1 against PyCryptodome; tests/test_native.py tests the shared UI and native
+worker. Backend tests cover authentication, replay, quotas and private downloads.
+The hosted downloaded client translated a synthetic English sample to Korean
+in Civ V DX9 1.0.3.279 at the main menu in 3.5 seconds on 2026-10-30, without
+a companion/local server. This does not verify multiplayer stability.

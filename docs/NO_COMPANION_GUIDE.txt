@@ -1,0 +1,41 @@
+IMPROVED CHAT - COMPANION-FREE BETA
+
+1. Close Civilization V.
+2. Extract your download. Copy the inner InGameTranslateMod folder into your
+   Civilization V installation's Assets\DLC folder, replacing the old copy.
+   Keep only one copy installed. This is the same installation style as EUI.
+3. Start Civ V and open Improved Chat in a lobby or game. Translation is
+   enabled by default; choose a language and send. No Settings step is needed.
+
+No companion, installer, account, or API key entry is required.
+Do not share your downloaded ZIP: it contains your installation key. Share
+https://civ5-improved-chat-api.pages.dev/ so friends receive their own keys.
+
+Translation, incoming source selection (including Russian in Latin letters),
+private replies, icons, colours, window controls, notes and encounter history
+remain in the overlay. Existing local notes/history use the same database.
+Windows clipboard Copy/Paste buttons are unavailable in this version.
+
+Translation sends selected message text to the hosted Cloudflare service.
+Notes and history remain local. The first request leaving Civ V contains
+authenticated ciphertext because its native HTTP API does not start TLS
+reliably. Keys are delivered only in the HTTPS download. The cryptographic
+implementation is experimental and has not received an independent audit.
+Traffic timing, length and installation identifiers are not hidden.
+
+Messages are limited to 6,000 UTF-8 bytes before translation. Long messages
+can consume several translation requests. Default daily limits are 2,000
+requests / 100,000 input bytes per installation, with shared service/network
+limits. A failed translation is not silently sent in its original language.
+Auto detection covers English, Russian, Ukrainian and Korean; select other
+source languages manually. Russian transliteration is best effort.
+
+The ZIP is personal. Copying it to multiple PCs shares the allowance and can
+cause replay-counter conflicts. Request a separate download for each PC.
+If local data is deleted or restored from backup, get a fresh download.
+Do not repeatedly download to evade service limits. Public download limits
+are shared by users on the same network.
+
+Only stock gameplay with optional EUI is supported. Multiplayer stability
+needs real-game testing; a successful main-menu test does not prove it.
+To uninstall, close Civ V and remove Assets\DLC\InGameTranslateMod.

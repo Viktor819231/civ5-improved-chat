@@ -104,3 +104,26 @@ The service intentionally stores no chat text or raw IP addresses. Cloudflare st
 Network identifiers are HMAC-SHA256 hashes using `IP_HASH_SECRET` and separate IP/subnet labels. Only Cloudflare's edge-supplied identity is trusted. A daily Durable Object alarm removes expired token records and network/issuance counters inactive for over two days. Stable registration proofs and subject usage records remain for recovery and reset prevention; review retention requirements when operating the service at larger scale. Local player notes, native account lookups and game history are not server authentication.
 
 Keep secrets, credentials, local settings/backups, personal databases, saves and raw chat-analysis material out of source and release archives. Ignore rules do not remove already-committed files: inspect the actual staged files and repository history. Third-party license notices are in [the notices directory](../third-party-licenses/README.txt).
+
+
+## Companion-free downloads
+
+New routes: GET / serves the download page; POST /download creates a private
+ZIP; GET /v2/dlc/{installation}/{sequence}/{ciphertext-hex} handles encrypted
+native requests. /v2/dlc/enroll is internal to the service binding and is not
+forwarded as a public key API. Existing companion routes remain available.
+DLC_ENABLED enables the new path; missing DLC_KEY_SECRET fails closed. Set
+the latter once using wrangler secret put with a random 32-byte hex secret.
+Never rotate it on redeployment: that invalidates all existing downloads.
+
+Build the keyless template with tools/build_dlc_template.py from the repo root.
+The generated edge/public/dlc-template.zip contains no key and is ignored.
+The edge blocks direct public access to that static asset. Existing registration
+and network quotas also limit fresh downloads; do not disable them for tests.
+
+Deploy backend from cloudflare: npx wrangler deploy --env public_beta
+Deploy Pages FROM cloudflare/edge:
+npx wrangler pages deploy --project-name civ5-improved-chat-api --branch production --commit-dirty=true
+The production branch is production; main creates a preview. Keep observability
+off and treat ciphertext request paths as private metadata. Verify native
+transport in Civ V: Python HTTPS alone cannot verify the game's HTTP behavior.
