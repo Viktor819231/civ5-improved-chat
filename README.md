@@ -3,7 +3,7 @@
 Translate multiplayer chat, whisper to individual players, and keep local player
 notes in a compact overlay. Works in the lobby and in-game chat.
 
-**[Download the Windows beta](https://github.com/Viktor819231/civ5-improved-chat/releases/tag/v0.9.1-beta)**
+**[Download the complete Windows ZIP](https://github.com/Viktor819231/civ5-improved-chat/releases/download/v0.9.1-beta/Improved-Chat-beta.zip)**
 
 The current beta requires the included Windows companion to stay running for
 translation and clipboard access. No email, Steam login or API key setup is
@@ -20,7 +20,7 @@ needed for the default translation service.
 
 ## Install
 
-1. Download **Improved-Chat-beta.zip** from the release page and extract it.
+1. Click **Download the complete Windows ZIP** above and extract it.
 2. Close Civ V and run **Install Improved Chat.cmd**. For manual installation,
    copy only the inner **InGameTranslateMod** folder into **Assets\DLC**.
 3. Start **InGameTranslateCompanion.exe**, choose **Enable online translation**,
@@ -29,7 +29,6 @@ needed for the default translation service.
 
 The beta targets stock Civ V with EUI support. Other gameplay mods are not
 supported. Install one copy of the DLC; updates to its UI require a game restart.
-The DLC-only download needs the matching companion from the full package.
 
 See the [user guide](docs/USER_GUIDE.txt) for controls, troubleshooting and uninstall.
 
