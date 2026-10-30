@@ -44,6 +44,7 @@ ContentManager.IsActive=function()return true end
         lua = self.environment("Modding.GetActivatedMods=function()return {{ID='other-mod',Name='EUI'}}end")
         lua.execute(SOURCE)
         self.assertTrue(lua.globals().Controls.Toggle.disabled)
+        self.assertTrue(lua.globals().Controls.Toggle.hidden)
         self.assertTrue(lua.globals().Controls.Panel.hidden)
         self.assertIn('Unsupported active mod', lua.globals().Controls.Toggle.tooltip)
 
@@ -54,6 +55,7 @@ ContentManager.IsActive=function(id,kind)assert(kind==1);return true end
 """)
         lua.execute(SOURCE)
         self.assertTrue(lua.globals().Controls.Toggle.disabled)
+        self.assertTrue(lua.globals().Controls.Toggle.hidden)
         self.assertIn('DLC/modpack', lua.globals().Controls.Toggle.tooltip)
 
     def test_unknown_ui_only_or_disabled_package_is_allowed(self):
@@ -85,6 +87,7 @@ ContentManager.IsActive=function(id,kind)assert(kind==1);return true end
             h.tick(5)
             self.assertEqual(len(h.lua.globals().Sent),1)
             self.assertTrue(h.lua.globals().Controls.Toggle.disabled)
+            self.assertTrue(h.lua.globals().Controls.Toggle.hidden)
             h.lua.globals().Events.GameMessageChat_handler(1,-1,'Привет',0)
             self.assertEqual(h.db.execute('SELECT COUNT(*) FROM requests').fetchone()[0],0)
         finally:
@@ -98,7 +101,11 @@ ContentManager.IsActive=function(id,kind)assert(kind==1);return true end
             h.lua.execute("Modding.GetActivatedMods=function()return {{ID='gameplay-mod'}}end")
             h.lua.globals().showhide(False,False)
             self.assertIsNone(h.db.execute("SELECT name FROM sqlite_master WHERE name='requests'").fetchone())
+            h.lua.globals().showhide(True,False)
+            h.lua.globals().showhide(False,False)
+            self.assertFalse(h.lua.globals().input(1,27))
             self.assertTrue(h.lua.globals().Controls.Toggle.disabled)
+            self.assertTrue(h.lua.globals().Controls.Toggle.hidden)
         finally:
             h.tearDown()
 
