@@ -202,7 +202,7 @@ PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby')
         self.assertGreater(len(sent), 1)
         for i in range(1, len(sent) + 1):
             self.assertLessEqual(len(sent[i].text.encode("utf-8")), 240)
-            self.assertTrue(sent[i].text.startswith("(TR) [ICON_GOLD] "))
+            self.assertTrue(sent[i].text.startswith("(TranslatorMod) [ICON_GOLD] "))
             self.assertEqual(sent[i].team, -1)
             self.assertEqual(sent[i].player, 1)
 
@@ -253,7 +253,7 @@ PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby')
         transcript = self.lua.globals().Transcript
         self.assertEqual(transcript[len(transcript)].Message.text, 'You -> ru: Can we trade?')
         count = len(transcript)
-        self.lua.globals().Events.GameMessageChat_handler(0, -1, '(TR) Можем ли мы торговать?', 0)
+        self.lua.globals().Events.GameMessageChat_handler(0, -1, '(TranslatorMod) Можем ли мы торговать?', 0)
         self.assertEqual(len(transcript), count)
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM requests WHERE kind='incoming'").fetchone()[0], 0)
 
@@ -310,8 +310,8 @@ PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby')
         self.tick(.81)
         sent = self.lua.globals().Sent
         self.assertEqual(len(sent), 2)
-        self.assertEqual((sent[1].text, sent[1].player, sent[1].team), ('(TR) Перший', 1, -1))
-        self.assertEqual((sent[2].text, sent[2].player, sent[2].team), ('(TR) 두번째', 2, -1))
+        self.assertEqual((sent[1].text, sent[1].player, sent[1].team), ('(TranslatorMod) Перший', 1, -1))
+        self.assertEqual((sent[2].text, sent[2].player, sent[2].team), ('(TranslatorMod) 두번째', 2, -1))
         self.assertEqual(self.lua.globals().Controls.SendModeLabel.text, 'Translate: ON')
 
     def test_private_recipient_disconnect_never_broadcasts(self):

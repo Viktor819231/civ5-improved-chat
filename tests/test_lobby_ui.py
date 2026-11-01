@@ -46,7 +46,7 @@ class LobbyUITests(unittest.TestCase):
         self.h.click('SendTranslated')
         self.h.tick()
         sent = self.lua.globals().Sent[1]
-        self.assertEqual(sent.text, '(TR) Привет друзья')
+        self.assertEqual(sent.text, '(TranslatorMod) Привет друзья')
         self.assertIsNone(sent.team)
         self.assertIsNone(sent.player)
 
@@ -59,7 +59,7 @@ class LobbyUITests(unittest.TestCase):
         self.h.complete('Привет', 'en')
         self.h.tick(.81)
         sent = self.lua.globals().Sent[1]
-        self.assertEqual((sent.text, sent.team, sent.player), ('(TR) Привет', -1, 2))
+        self.assertEqual((sent.text, sent.team, sent.player), ('(TranslatorMod) Привет', -1, 2))
         transcript = self.lua.globals().Transcript
         self.assertIn('You -> ru to LobbyP2 (private): Hello privately', transcript[len(transcript)].Message.text)
 

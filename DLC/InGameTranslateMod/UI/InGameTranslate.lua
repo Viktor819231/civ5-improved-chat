@@ -934,7 +934,7 @@ local function BeginSend(text, translated, options)
     if options.recipient ~= -1 and (PlayerRoster()[options.recipient] ~= options.name or (options.steamID and IGT_History.SteamID(options.recipient) ~= options.steamID)) then
         SetStatus(T("status.recipient.changed")); return;
     end
-    local prefix = (translated and "(TR) " or "") .. (options.icon ~= "" and options.icon .. " " or "");
+    local prefix = (translated and "(TranslatorMod) " or "") .. (options.icon ~= "" and options.icon .. " " or "");
     local color = options.color;
     local colorBytes = color ~= "" and (#color + 12) or 0;
     text = IGT_Text.SafeDisplay(color ~= "" and IGT_Text.StripColors(text) or text);

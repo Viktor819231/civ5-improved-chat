@@ -19,6 +19,8 @@
   translated once; your own messages are translated first; reaching the daily
   limit pauses automatic translation for 5 minutes. Finished requests are read
   once and old ones are cleared, so a long or spammy game does not slow the UI.
+- Translated messages you send are tagged (TranslatorMod) instead of (TR), in
+  English whatever the language, so other players know where they come from.
 
 Upgrade: download again from the website and replace InGameTranslateMod with
 Civ V closed. Notes and history are kept.

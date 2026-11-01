@@ -156,7 +156,8 @@ The recipient dropdown beside the draft offers All players or individual
 connected human players. Private recipients are rechecked before sending;
 a disconnect cancels delivery and never changes the recipient to All.
 Choose Send language and switch Translate ON, then type and press Enter or
-Send. Each submitted draft is translated and sent with a (TR) tag; the input
+Send. Each submitted draft is translated and sent with a (TranslatorMod) tag
+(in English for every language, so all players read it the same); the input
 clears and keeps focus for your next reply. Translation stays enabled until
 you toggle it OFF. With it OFF (the default), Send sends the original text.
 Language, recipient, colour and icon are captured separately for each draft.
