@@ -170,8 +170,6 @@ local autoPausedUntil = 0;
 local clock = 0;
 local recentTranslations, recentOrder = {}, {};
 
-local function T(key, ...) return IGT_Text.T(readerLanguage, key, ...); end
-local function LanguageName(code) return T("lang." .. tostring(code)); end
 local function IndexOf(list, value)
     for i, item in ipairs(list) do if item == value then return i; end end
 end
@@ -182,6 +180,17 @@ local function GameLanguage()
     local code = ok and type(info) == "table" and tostring(info.Type or ""):sub(1, 2):lower() or "";
     return IndexOf(incomingLanguages, code) and code or "en";
 end
+-- The window speaks My language when the game's font can draw it. The English
+-- font has Western European letters only, so other alphabets need the game
+-- itself in that language; otherwise the window stays readable in English.
+local westernLetters = { en=true, de=true, fr=true, es=true, it=true };
+local windowLanguage = "en";
+local function UpdateWindowLanguage()
+    local game = GameLanguage();
+    windowLanguage = (readerLanguage == game or (westernLetters[readerLanguage] and westernLetters[game])) and readerLanguage or "en";
+end
+local function T(key, ...) return IGT_Text.T(windowLanguage, key, ...); end
+local function LanguageName(code) return T("lang." .. tostring(code)); end
 
 local function Quote(value)
     return "'" .. tostring(value or ""):gsub("'", "''") .. "'";
@@ -686,13 +695,14 @@ end
 local SetupDropdowns;
 local function SetReaderLanguage(code)
     readerLanguage = code;
+    UpdateWindowLanguage();
     State("reader_language", code);
     SetupDropdowns();
     ApplyFixedTexts();
     ShowPage(activePage, not expanded);
     InvalidateDraft();
     RefreshChatNames();
-    SetStatus(T("status.language", LanguageName(code)));
+    SetStatus(T(windowLanguage == code and "status.language" or "status.language.font", LanguageName(code)));
 end
 
 SetupDropdowns = function()
@@ -726,6 +736,7 @@ local function StartSession()
         end
     end
     readerLanguage = IndexOf(incomingLanguages, saved.reader_language) and saved.reader_language or GameLanguage();
+    UpdateWindowLanguage();
     targetIndex = IndexOf(targetLanguages, saved.target_language) or IndexOf(targetLanguages, readerLanguage == "en" and "ru" or "en");
     sourceIndex = IndexOf(sourceLanguages, saved.source_language) or 1;
     Query("CREATE TABLE IF NOT EXISTS igt_profiles(original_name TEXT PRIMARY KEY,alias TEXT NOT NULL,note TEXT NOT NULL)");

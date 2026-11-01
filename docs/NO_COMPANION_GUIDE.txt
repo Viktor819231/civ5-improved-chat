@@ -24,9 +24,10 @@ implementation is experimental and has not received an independent audit.
 Traffic timing, length and installation identifiers are not hidden.
 
 Incoming chat is translated into your language: the language Civ V runs in,
-or the one chosen under Settings > My language. Civ V only shows the letters
-of its own language, so a Russian or Korean window needs the game in Russian
-or Korean. Send in: offers 30 languages; Russian (Latin letters) is readable
+or the one chosen under Settings > My language, which also sets the window
+language (ten languages). Civ V only shows the letters of its own language,
+so a Russian, Polish, Korean, Japanese or Chinese window needs the game in
+that language; German, French, Spanish and Italian work in any Western game. Send in: offers 30 languages; Russian (Latin letters) is readable
 in every game. Translations know the game's official names and player slang.
 
 Messages are limited to 6,000 UTF-8 bytes before translation. Long messages

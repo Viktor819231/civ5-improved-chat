@@ -1,4 +1,5 @@
 """My language: translated overlay and chat, spam guard and request cleanup."""
+import re
 import unittest
 import test_game_ui
 
@@ -21,7 +22,11 @@ class ReaderLanguageTests(unittest.TestCase):
         rows=[tuple(r) for r in self.db.execute('SELECT kind,source,target,text FROM requests ORDER BY id')]
         return [r for r in rows if kind is None or r[0]==kind]
 
+    def game_language(self,locale):
+        self.lua.execute("Locale.GetCurrentLanguage=function() return {Type='%s'} end" % locale)
+
     def test_russian_reader_gets_russian_window_and_foreign_chat_in_russian(self):
+        self.game_language('ru_RU')
         self.h.select('Incoming',2)  # Русский
         self.assertEqual(self.controls.SendText.text,'Отправить')
         self.assertEqual(self.controls.Incoming.text,'Русский')
@@ -52,6 +57,39 @@ class ReaderLanguageTests(unittest.TestCase):
         self.assertEqual(self.requests(),[])
         self.chat('Привет')
         self.assertEqual(self.requests(),[('auto','auto','de','Привет')])
+
+    def test_english_game_keeps_the_window_readable_for_other_alphabets(self):
+        self.h.select('Incoming',2)  # Russian: the English font has no Cyrillic
+        self.assertEqual(self.controls.SendText.text,'Send')
+        self.assertEqual(self.controls.Incoming.text,'Russian')
+        self.assertIn('so this window stays in English',self.controls.ActionStatus.text)
+        self.chat('평화?')
+        self.assertEqual(self.requests()[-1][2],'ru')
+
+    def test_western_languages_change_the_window_on_an_english_game(self):
+        ui=self.lua.globals().IGT_Text.UI
+        for index,code in [(4,'de'),(5,'fr'),(6,'es'),(7,'it')]:
+            self.h.select('Incoming',index)
+            self.assertEqual(self.controls.SendText.text,ui[code]['send'],code)
+            self.assertEqual(self.controls.Incoming.text,ui[code]['lang.'+code],code)
+        self.h.select('Incoming',8)  # Polish needs the Polish game font
+        self.assertEqual(self.controls.SendText.text,'Send')
+        self.game_language('pl_PL')
+        self.lua.globals().Events.GameplaySetActivePlayer_handler()
+        self.assertEqual(self.controls.SendText.text,ui['pl']['send'])
+
+    def test_every_window_language_is_complete_and_drawable(self):
+        ui=self.lua.globals().IGT_Text.UI
+        english=dict(ui['en'].items())
+        marks=lambda text:sorted(set(re.findall(r'%\d+|\[[A-Z_0-9]+\]',text)))
+        font=set(range(32,127))|set(range(160,256))|{338,339,344,345}  # English Civ V font
+        for code in ['en','ru','ko','de','fr','es','it','pl','ja','zh']:
+            table=dict(ui[code].items())
+            self.assertEqual(set(table),set(english),code)
+            for key,text in table.items():
+                self.assertEqual(marks(text),marks(english[key]),(code,key))
+                if code in ('en','de','fr','es','it'):
+                    self.assertTrue(all(ord(c) in font for c in text),(code,key,text))
 
     def test_game_language_is_the_default_and_an_explicit_choice_wins(self):
         self.lua.execute("Locale.GetCurrentLanguage=function() return {Type='ko_KR',DisplayName='Korean'} end")

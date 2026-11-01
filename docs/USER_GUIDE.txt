@@ -87,10 +87,14 @@ right-click its Original/English button and choose the source again.
 
 MY LANGUAGE
 Settings > My language decides which language incoming chat is translated
-into, and the language of this window (English, Russian or Korean; other
-languages show the window in English). It starts as the language Civ V runs
-in, because Civ V only shows the letters of its own language: an English game
-cannot display Cyrillic or Korean. Your choice is remembered. "I write in" and
+into, and the language of this window (all ten: English, Russian, Korean,
+German, French, Spanish, Italian, Polish, Japanese, Chinese). It starts as the
+language Civ V runs in, because Civ V only shows the letters of its own
+language: an English game cannot display Cyrillic, Polish letters, Korean,
+Japanese or Chinese. The window therefore changes to German, French, Spanish
+or Italian in any Western game, and to the other languages only when Civ V
+itself runs in them; otherwise it stays in English and says why. Your choice
+is remembered. "I write in" and
 "Send in" are remembered too.
 
 CIV 5-AWARE TRANSLATION

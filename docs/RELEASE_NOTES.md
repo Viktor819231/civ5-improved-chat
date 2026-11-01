@@ -1,3 +1,15 @@
+# Improved Chat 0.11.1 beta
+
+- The overlay window speaks all ten My language choices: English, Russian,
+  Korean, German, French, Spanish, Italian, Polish, Japanese and Chinese
+  (Traditional, like Civ V's Chinese). Changing My language changes the window.
+- A language the game's font cannot draw (Cyrillic, Polish, Korean, Japanese,
+  Chinese in an English game) keeps the window in English with a note, so it
+  always stays readable.
+
+Upgrade: download again from the website and replace InGameTranslateMod with
+Civ V closed. Notes and history are kept.
+
 # Improved Chat 0.11.0 beta
 
 - Civ 5-aware translation: a language model (Gemma 4 on Cloudflare Workers AI)
