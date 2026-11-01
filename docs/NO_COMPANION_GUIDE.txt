@@ -23,12 +23,20 @@ reliably. Keys are delivered only in the HTTPS download. The cryptographic
 implementation is experimental and has not received an independent audit.
 Traffic timing, length and installation identifiers are not hidden.
 
+Incoming chat is translated into your language: the language Civ V runs in,
+or the one chosen under Settings > My language. Civ V only shows the letters
+of its own language, so a Russian or Korean window needs the game in Russian
+or Korean. Send in: offers 30 languages; Russian (Latin letters) is readable
+in every game. Translations know the game's official names and player slang.
+
 Messages are limited to 6,000 UTF-8 bytes before translation. Long messages
 can consume several translation requests. Default daily limits are 2,000
 requests / 100,000 input bytes per installation, with shared service/network
 limits. A failed translation is not silently sent in its original language.
-Auto detection covers English, Russian, Ukrainian and Korean; select other
-source languages manually. Russian transliteration is best effort.
+The service recognises the message language; right-click Translate to choose
+it yourself. Russian transliteration is best effort. When a player floods the
+chat, automatic translation is rationed; each message keeps its Translate
+button, and your own messages are always translated first.
 
 The ZIP is personal. Copying it to multiple PCs shares the allowance and can
 cause replay-counter conflicts. Request a separate download for each PC.
@@ -36,6 +44,7 @@ If local data is deleted or restored from backup, get a fresh download.
 Do not repeatedly download to evade service limits. Public download limits
 are shared by users on the same network.
 
-Only stock gameplay with optional EUI is supported. Multiplayer stability
-needs real-game testing; a successful main-menu test does not prove it.
+Stock gameplay, optional EUI, and KEK Mod are supported. Copy the folder
+into Assets\DLC. No extra step. Multiplayer stability needs real-game
+testing; a successful main-menu test does not prove it.
 To uninstall, close Civ V and remove Assets\DLC\InGameTranslateMod.

@@ -1,6 +1,6 @@
 import {dlcRequest} from './dlc.js';
-const MODEL = '@cf/meta/m2m100-1.2b';
-const LANGUAGES = new Set(['en','ru','uk','ko','fr','de','es','pl','pt','tr','it','nl','sv','zh','ja','ar']);
+import {LANGUAGES} from './languages.js';
+import {translateChat} from './civ5-chat.js';
 const bytes = s => new TextEncoder().encode(s).length;
 const json = (data, status = 200) => Response.json(data, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export const digest = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -112,15 +112,14 @@ const worker = {
     // identity, quotas, reservations, time and model choice belong to the server.
     if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(k=>!['text','source','target'].includes(k)))return json({error:'Only text, source and target are accepted'},400);
     const {text,source,target}=input;
-    if(typeof text!=='string'||!text.trim()||!LANGUAGES.has(source)||!LANGUAGES.has(target))return json({error:'Provide text and a supported explicit source/target language'},400);
+    if(typeof text!=='string'||!text.trim()||(source!=='auto'&&!LANGUAGES.has(source))||!LANGUAGES.has(target))return json({error:'Provide text, a supported source (or auto) and a supported target language'},400);
     if(bytes(text)>limit(env,'MAX_INPUT_BYTES',1000))return json({error:'Message too long'},413);
     const reservation=await call(env,'/reserve',{tokenHash,inputBytes:bytes(text),...network});
     if(!reservation.ok)return reservation;
     const {reservationId,usage}=await reservation.json();
     try {
-      const result=source===target?{translated_text:text}:await env.AI.run(MODEL,{text,source_lang:source,target_lang:target});
-      if(typeof result?.translated_text!=='string'||!result.translated_text.trim())throw new Error('Invalid model response');
-      return json({text:result.translated_text,source,target,usage});
+      const result=await translateChat(env,text,source,target);
+      return json({text:result.text,source:result.source,target,usage});
     } catch {
       // Never include message text, provider responses or credentials in errors.
       return json({error:'Translation failed; reservation remains charged'},502);

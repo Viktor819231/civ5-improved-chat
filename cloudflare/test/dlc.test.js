@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cipher,hex,unhex,utf8,requestAD,responseAD} from '../src/dlc-crypto.js';
-import {detectSource,russianFromLatin,splitUtf8,translateMessage} from '../src/dlc-text.js';
+import {detectSource,latinFromRussian,russianFromLatin,splitUtf8,translateMessage} from '../src/dlc-text.js';
 import {download,downloadPage} from '../edge/public/dlc-download.js';
 import edge from '../edge/public/_worker.js';
 import {zipSync,unzipSync,strToU8,strFromU8} from 'fflate';
@@ -23,13 +23,24 @@ test('direction, sequence, installation and request tag bind responses',async()=
   for(const wrong of [requestAD('one','1'),responseAD('two','1',request.slice(0,16)),responseAD('one','2',request.slice(0,16)),responseAD('one','1',new Uint8Array(16))])await assert.rejects(c.open(response,wrong));
 });
 test('source detection, transliteration, markup and UTF8 preserve companion behavior',async()=>{
-  for(const [s,l] of [['Hello','en'],['Привет','ru'],['Привіт','uk'],['안녕','ko'],['[ICON_GOLD]','en']])assert.equal(detectSource(s),l);
-  assert.throws(()=>detectSource('日本語'));
+  for(const [s,l] of [['Hello','auto'],['Hola amigo','auto'],['Привет','ru'],['Привіт','uk'],['안녕','ko'],['ㅋㅋㅋ','ko'],['日本語','zh'],['ありがとう','ja'],['[ICON_GOLD]','auto']])assert.equal(detectSource(s),l);
   assert.equal(russianFromLatin('Privet, moy drug! https://example.test'),'Привет, мой друг! https://example.test');
+  assert.equal(russianFromLatin('dam 5 [ICON_GOLD] za ham'),'дам 5 [ICON_GOLD] за хам');
+  assert.equal(latinFromRussian('Объявляю войну, щас Москву возьму!'),'Obyavlyayu voynu, schas Moskvu vozmu!');
   const input='안녕 '.repeat(200),chunks=splitUtf8(input);assert.equal(chunks.join(''),input);assert.ok(chunks.every(c=>utf8(c).length<=500));
+  // Markup stays inside the sentence: one request sees "Hello [ICON_GOLD] friend!".
   const calls=[];
-  const result=await translateMessage('[COLOR_RED] Privet [ICON_GOLD] drug! [ENDCOLOR]','ru-latn','en',async(t,s,g)=>{calls.push([t,s,g]);return t==='Привет'?'Hello':'friend!';});
-  assert.equal(result.text,'[COLOR_RED] Hello [ICON_GOLD] friend! [ENDCOLOR]');assert.equal(calls.length,2);
+  const result=await translateMessage('[COLOR_RED] Privet [ICON_GOLD] drug! [ENDCOLOR]','ru-latn','en',async(t,s,g)=>{calls.push([t,s,g]);return t.replace('Привет','Hello').replace('друг','friend');});
+  assert.equal(result.text,'[COLOR_RED] Hello [ICON_GOLD] friend! [ENDCOLOR]');assert.deepEqual(calls,[['[COLOR_RED] Привет [ICON_GOLD] друг! [ENDCOLOR]','ru','en']]);
+});
+test('auto lets the service name the language; Latin-letter Russian is an output too',async()=>{
+  const auto=await translateMessage('Hola, ¿paz?','auto','en',async(t,s)=>{assert.equal(s,'auto');return {text:'Hi, peace?',source:'es'};});
+  assert.deepEqual(auto,{text:'Hi, peace?',source:'es'});
+  const latin=await translateMessage('Want peace?','en','ru-latn',async(t,s,g)=>{assert.equal(g,'ru');return {text:'Хочешь мир?',source:'en'};});
+  assert.deepEqual(latin,{text:'Hochesh mir?',source:'en'});
+  // Same language: no request, only the letters change.
+  assert.deepEqual(await translateMessage('Привет','ru','ru-latn',()=>assert.fail('no request')),{text:'Privet',source:'ru'});
+  await assert.rejects(translateMessage('Hi','en','xx',()=>{}),/supported/);
 });
 test('personalized ZIP is private, keyless template unchanged, HTTPS mandatory',async()=>{
   const marker='IGT_Config = false; -- PERSONALIZED_DOWNLOAD_CONFIG';
@@ -56,9 +67,10 @@ test('browser download page preserves same-origin POST information and GET never
   assert.match(await page.text(),/<form method="post" action="\/download">/);
   const env={TRANSLATION:{fetch:()=>{throw new Error('GET must not issue a key');}}};
   const direct=await edge.fetch(new Request('https://example.test/download'),env);
-  assert.equal(direct.status,200);assert.match(await direct.text(),/Download Improved Chat/);
+  assert.equal(direct.status,200);assert.match(await direct.text(),/Download Civ5TranslatorMod/);
   const insecure=await edge.fetch(new Request('http://example.test/download'),env);
   assert.equal(insecure.status,303);assert.equal(insecure.headers.get('Location'),'https://example.test/download');
   const rejected=await download(new Request('https://example.test/download',{method:'POST',headers:{Origin:'null'}}),env,'203.0.113.1');
   assert.equal(rejected.status,403);
 });
+

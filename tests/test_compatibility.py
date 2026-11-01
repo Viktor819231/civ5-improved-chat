@@ -48,6 +48,23 @@ ContentManager.IsActive=function()return true end
         self.assertTrue(lua.globals().Controls.Panel.hidden)
         self.assertIn('Unsupported active mod', lua.globals().Controls.Toggle.tooltip)
 
+    def test_kek_mod_is_allowed(self):
+        lua = self.environment("""
+ContentManager.GetAllPackageIDs=function()return {'{B5932AE4-0F4F-498F-9333-E2D31B20E095}'}end
+ContentManager.IsActive=function()return true end
+""")
+        lua.execute(GUARD)
+        self.assertIsNone(lua.globals().Controls.Toggle.disabled)
+        root = Path(__file__).resolve().parents[1] / 'DLC/InGameTranslateMod'
+        lobby = (root / 'UI/InGameTranslateLobby.lua').read_text(encoding='utf-8')
+        self.assertIn('b5932ae4-0f4f-498f-9333-e2d31b20e095', lobby)
+        # Stay under KEK's priority so KEK's lobby screen remains the one in use.
+        self.assertIn('<Priority>260</Priority>', (root / 'InGameTranslate_2.Civ5Pkg').read_text(encoding='utf-8'))
+        self.assertIn('InGameTranslateLobby', (root / 'UI/StagingRoom.xml').read_text(encoding='utf-8'))
+        self.assertIn('UI/InGameTranslate"', (root / 'Skin2/InGame.xml').read_text(encoding='utf-8'))
+        self.assertFalse((root / 'UI/StagingRoom.lua').exists())
+        self.assertFalse((root / 'UI/InGame.lua').exists())
+
     def test_active_unknown_gameplay_dlc_blocks_modpack(self):
         lua = self.environment("""
 ContentManager.GetAllPackageIDs=function()return {'{unknown-modpack}'}end

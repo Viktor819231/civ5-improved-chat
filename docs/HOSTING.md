@@ -1,6 +1,6 @@
 # Hosting Improved Chat
 
-The beta translation service uses [Cloudflare Pages](https://developers.cloudflare.com/pages/functions/advanced-mode/), Workers AI and a SQLite-backed Durable Object. The public endpoint is **https://civ5-improved-chat-api.pages.dev**. Users do not need an email, Steam login or personal provider key.
+The beta translation service uses [Cloudflare Pages](https://developers.cloudflare.com/pages/functions/advanced-mode/), Workers AI and a SQLite-backed Durable Object. Translation uses Gemma 4 (`@cf/google/gemma-4-26b-a4b-it`) with a fixed Civ V prompt, plus the official names and player shorthand found in each message. Meta M2M100 (`@cf/meta/m2m100-1.2b`) translates when the model fails or returns an implausible answer, and is the whole engine when `TRANSLATION_ENGINE` is `m2m100` (the switch-back setting). The public endpoint is **https://civ5-improved-chat-api.pages.dev**. Users do not need an email, Steam login or personal provider key.
 
 ## Architecture
 
@@ -43,6 +43,8 @@ Deployment requires an authorized Cloudflare account with permission to manage P
 4. Verify the neutral `/health` endpoint and service binding, and independently verify that old direct backend and preview URLs no longer serve traffic. A source configuration edit alone does not disable a deployed route.
 5. Test registration, renewal and usage before running a deliberately limited real translation test. Deployment and real inference are operator actions that may incur charges.
 
+The official Civ V names come from the game's own localisation and are not in Git. Generate them on a PC with Civ V installed before every backend deployment (`npm run deploy:beta` does this check): `.venv\Scripts\python.exe tools\build_glossary.py` writes `cloudflare/src/civ5-terms.generated.js`. `npm run deploy:beta` refuses to deploy without the file; a plain `wrangler deploy` would ship without the official names (translation still works, less precisely). Only languages installed with the game are included: the base game ships its text in the installed language only, while expansions and DLC ship all ten.
+
 Local validation from `cloudflare/`:
 
 ```sh
@@ -68,7 +70,7 @@ Daily counters reset at **00:00 UTC**. Limits measure **requests and UTF-8 input
 | Scope | Daily requests | Daily input bytes | Requests/minute | Concurrent inference |
 | --- | ---: | ---: | ---: | ---: |
 | Installation | 2,000 | 100,000 | 60 | 2 |
-| Service | 10,000 | 500,000 | — | 4 |
+| Service | 10,000 | 500,000 | — | 8 |
 | IP address | 6,000 translations | 250,000 | 120 front-door requests | — |
 | Subnet | 12,000 translations | 500,000 | 240 front-door requests | — |
 
@@ -89,7 +91,7 @@ These controls identify installations and networks, not verified people. Users s
 
 ## Billing limitations
 
-**The configured quotas do not guarantee $0.01 per installation per day or a $5 service-wide daily spending cap.** The Worker calls Cloudflare-hosted Meta M2M100 directly through Workers AI. Its documented API exposes no maximum-output-token parameter. Input-byte limits therefore do not establish a verified worst-case output cost; rejecting or truncating output after inference cannot undo its charges.
+**The configured quotas do not guarantee $0.01 per installation per day or a $5 service-wide daily spending cap.** Each Gemma 4 request now carries a hard output limit of 96 tokens plus one per input byte (at most 596 for a 500-byte input), and its prompt is about 350 tokens plus the message and up to 22 short hints. With the listed prices ($0.10 per million input tokens, $0.30 per million output tokens, as shown by `wrangler ai models list` on 2026-11-01) that is at most about $0.0003 per request; measured chat lines used about 400 input and 30 output tokens (about $0.00005). The M2M100 fallback still has no output limit, so failures and `TRANSLATION_ENGINE=m2m100` keep the old unbounded-output caveat. Rejecting output after inference cannot undo its charges.
 
 AI Gateway dollar spend rules are not part of the active enforcement path. To add them, an administrator with appropriate AI Gateway permissions must configure a dedicated gateway, a fixed daily global **block** rule, no paid fallback, and disabled prompt/response logging. Every inference must use that gateway and fail closed when configuration is absent. Verify M2M100 cost reporting before relying on this additional guard.
 

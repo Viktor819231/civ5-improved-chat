@@ -1,6 +1,7 @@
 -- InGameTranslateMod: independent UI, no changes to DiploCorner or EUI.
 print("IGT shared script loaded (0.8 chat journal)");
--- Only stock gameplay is supported. EUI and this add-on are UI-only DLCs.
+-- Stock gameplay, optional EUI, and KEK Mod. KEK does not replace the in-game
+-- screen, so this window can be added there without covering KEK's files.
 -- Exact package IDs come from the installed official Civ5Pkg manifests;
 -- display names are not trusted because modpacks can use arbitrary names.
 local compatiblePackages = {};
@@ -13,7 +14,7 @@ for _, id in ipairs({
     "4255f5f7-d3ab-4e55-acee-4670082040ed", "0e3751a1-f840-4e1b-9706-519bf484e59d",
     "6da07636-4123-4018-b643-6575b4ec336b", "8871e748-29a4-4910-8c57-8c99e32d0167",
     "cbe91af6-0683-4326-bc77-58bb489e509f", "570f793e-fc33-417f-ae19-7cecccdd5f85",
-    "c74fe31f-6834-496f-87dc-fb1c471b7fc8"
+    "c74fe31f-6834-496f-87dc-fb1c471b7fc8", "b5932ae4-0f4f-498f-9333-e2d31b20e095"
 }) do compatiblePackages[id] = true; end
 
 local function PackageKey(id)
@@ -28,7 +29,7 @@ local function CompatibilityProblem()
     if not ok or type(mods) ~= "table" then return "Active mod check failed; Improved Chat is disabled for this session."; end
     for _, mod in pairs(mods) do
         if type(mod) ~= "table" or not compatiblePackages[PackageKey(mod.ID)] then
-            return "Unsupported active mod detected. Improved Chat supports stock gameplay with optional EUI.";
+            return "Unsupported active mod detected. Improved Chat supports stock gameplay, optional EUI, and KEK Mod.";
         end
     end
     if not ContentManager or type(ContentManager.GetAllPackageIDs) ~= "function" or
@@ -41,7 +42,7 @@ local function CompatibilityProblem()
         if not compatiblePackages[PackageKey(id)] then
             local activeOK, active = pcall(ContentManager.IsActive, id, ContentType.GAMEPLAY);
             if not activeOK then return "Gameplay package check failed; Improved Chat is disabled for this session."; end
-            if active then return "Unsupported gameplay DLC/modpack detected. Improved Chat supports stock gameplay with optional EUI."; end
+            if active then return "Unsupported gameplay DLC/modpack detected. Improved Chat supports stock gameplay, optional EUI, and KEK Mod."; end
         end
     end
     return nil;
@@ -84,10 +85,17 @@ local session = "";
 local pending = {};
 local chatRows = {};
 local lastTranslation = "";
-local sourceLanguages = { "auto", "en", "ru", "uk", "ko", "ru-latn" };
-local targetLanguages = { "ru", "uk", "ko", "en" };
-local incomingLanguages = { "en" }; -- This build is for an English-speaking user.
-local sourceIndex, targetIndex, incomingIndex = 1, 1, 1;
+-- New languages are appended so saved positions and older lists stay valid.
+local sourceLanguages = { "auto", "en", "ru", "uk", "ko", "ru-latn", "zh", "ja", "de", "fr", "es", "pt", "it", "pl", "tr",
+    "be", "kk", "cs", "sk", "nl", "sv", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "vi", "id" };
+-- Civ V has no Arabic or Greek font, so those are read-only languages.
+local targetLanguages = { "ru", "uk", "ko", "en", "ru-latn", "zh", "ja", "de", "fr", "es", "pt", "it", "pl", "tr",
+    "be", "kk", "cs", "sk", "nl", "sv", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "vi", "id" };
+-- My language: the ten languages Civ V ships, whose letters its fonts can show.
+local incomingLanguages = { "en", "ru", "ko", "de", "fr", "es", "it", "pl", "ja", "zh" };
+local readerScripts = { en="latin", de="latin", fr="latin", es="latin", it="latin", pl="latin", ru="cyrillic", ko="hangul", ja="kana", zh="han" };
+local readerLanguage = "en";
+local sourceIndex, targetIndex = 1, 1;
 local receiving = true;
 local recipientID = -1;
 local selectedRecipientName;
@@ -97,13 +105,12 @@ local translateOnSend = IGT_Config ~= false;
 local submissionGeneration = 0;
 local rosterElapsed = 0;
 local compatibilityElapsed = 0;
-local languageNames = { auto = "Auto detect", en = "English", ru = "Russian", uk = "Ukrainian", ko = "Korean", ["ru-latn"] = "Russian (Latin letters)" };
 local selectedIcon = "";
 local colorIndex = 1;
 local colors = {
-    { "Default", "" }, { "Red", "COLOR_RED" }, { "Green", "COLOR_GREEN" },
-    { "Cyan", "COLOR_CYAN" }, { "Yellow", "COLOR_YELLOW" },
-    { "Magenta", "COLOR_MAGENTA" }, { "White", "COLOR_WHITE" }, { "Blue", "COLOR_BLUE" }
+    { "color.default", "" }, { "color.red", "COLOR_RED" }, { "color.green", "COLOR_GREEN" },
+    { "color.cyan", "COLOR_CYAN" }, { "color.yellow", "COLOR_YELLOW" },
+    { "color.magenta", "COLOR_MAGENTA" }, { "color.white", "COLOR_WHITE" }, { "color.blue", "COLOR_BLUE" }
 };
 local translatedDraft;
 local translatedSource;
@@ -113,9 +120,10 @@ local sendDelay = 0.8;
 local elapsed = 0;
 local pasteCounter = 0;
 local pasteToken;
-local statusText = "Start the Windows companion to translate.";
+local statusText = IGT_Text.T("en", "status.companion");
 local initialized = false;
 local Initialize;
+local ErrorText;
 local RefreshRecipients;
 local expanded = false;
 local expectedEchoes = {};
@@ -142,7 +150,8 @@ local ShowPage;
 local TranslateRow;
 local forceRow;
 local forceSource;
-local manualLanguages = {{"ru","Russian"},{"ru-latn","Russian (Latin letters)"},{"uk","Ukrainian"},{"ko","Korean"},{"fr","French"},{"de","German"},{"es","Spanish"},{"pl","Polish"},{"pt","Portuguese"},{"tr","Turkish"},{"it","Italian"},{"nl","Dutch"},{"sv","Swedish"},{"zh","Chinese"},{"ja","Japanese"},{"ar","Arabic"}};
+local manualLanguages = { "ru", "ru-latn", "uk", "ko", "fr", "de", "es", "pl", "pt", "tr", "it", "nl", "sv", "zh", "ja", "ar",
+    "en", "be", "kk", "cs", "sk", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "el", "vi", "id" };
 local windowPositions = {};
 local panelBounds;
 local dragging;
@@ -152,6 +161,27 @@ local syncingSize=false;
 local announcedPlayers={};
 local contextPlayer;
 local historyPerson;
+-- Spam guard: automatic translations are rationed per sender and in total, so
+-- a flood of chat can neither use up the daily allowance nor delay your own
+-- messages. Every message keeps its Translate button for a manual request.
+local AUTO_BURST, AUTO_REFILL_SECONDS, AUTO_WAITING, AUTO_MAX_BYTES = 4, 6, 6, 600;
+local autoBudget = {};
+local autoPausedUntil = 0;
+local clock = 0;
+local recentTranslations, recentOrder = {}, {};
+
+local function T(key, ...) return IGT_Text.T(readerLanguage, key, ...); end
+local function LanguageName(code) return T("lang." .. tostring(code)); end
+local function IndexOf(list, value)
+    for i, item in ipairs(list) do if item == value then return i; end end
+end
+-- Civ V draws text with the font of its own language. Following the game's
+-- language means every letter of this window and its translations can show.
+local function GameLanguage()
+    local ok, info = pcall(function() return Locale.GetCurrentLanguage(); end);
+    local code = ok and type(info) == "table" and tostring(info.Type or ""):sub(1, 2):lower() or "";
+    return IndexOf(incomingLanguages, code) and code or "en";
+end
 
 local function Quote(value)
     return "'" .. tostring(value or ""):gsub("'", "''") .. "'";
@@ -176,7 +206,7 @@ end
 local function Safe(action)
     local ok, err = pcall(action);
     if not ok then
-        SetStatus("Translator: " .. tostring(err));
+        SetStatus(T("status.error", tostring(err)));
         print("InGameTranslateMod: " .. tostring(err));
     end
     return ok;
@@ -185,10 +215,10 @@ end
 local function PlayerName(id)
     if isLobby then
         local name = PreGame.GetNickName(id);
-        return name and name ~= "" and name or ("Player " .. tostring(id));
+        return name and name ~= "" and name or T("player.n", id);
     end
     local player = Players and Players[id];
-    if not player then return "Player " .. tostring(id); end
+    if not player then return T("player.n", id); end
     local name = player:GetNickName();
     if not name or name == "" then name = player:GetName(); end
     return name;
@@ -213,15 +243,15 @@ end
 local function ProfileTooltip(name, steamID)
     steamID = steamID or (not duplicateNames[name] and nameAccounts[name]);
     local profile = ProfileFor(name, steamID);
-    return "Original name: " .. PlainText(name) .. "[NEWLINE]" ..
-        (steamID and ("Steam ID: " .. steamID .. "[NEWLINE]") or "Name match only[NEWLINE]") ..
-        (duplicateNames[name] and not steamID and "Duplicate name: saved nickname and note not applied." or
-        (profile and profile.note ~= "" and ("Note: " .. PlainText(profile.note)) or "No saved note."));
+    return T("profile.original", PlainText(name)) .. "[NEWLINE]" ..
+        (steamID and T("profile.steam", steamID) or T("profile.name.only")) .. "[NEWLINE]" ..
+        (duplicateNames[name] and not steamID and T("profile.duplicate") or
+        (profile and profile.note ~= "" and T("profile.note", PlainText(profile.note)) or T("profile.no.note")));
 end
 
 local function TurnStamp()
-    if isLobby then return "Lobby"; end
-    return "Turn " .. tostring(Game.GetGameTurn());
+    if isLobby then return T("lobby"); end
+    return T("turn", Game.GetGameTurn());
 end
 
 local function AddLine(text, stamp, channelColor)
@@ -267,7 +297,7 @@ local function RenderChat(row)
     for _, active in ipairs(chatRows) do if active == row then present = true; break; end end
     if not present then return; end
     local chat = row.chat;
-    local name = chat.own and "You" or DisplayName(chat.name, chat.steamID);
+    local name = chat.own and T("you") or DisplayName(chat.name, chat.steamID);
     if chat.targetName then name = name .. " -> " .. DisplayName(chat.targetName, chat.targetSteam); end
     UpdateLine(row, (chat.prefix or "") .. name .. chat.audience .. ": " .. chat.text);
     row.Message:SetToolTipString((row.stamp ~= "" and (row.stamp .. "[NEWLINE]") or "") .. ProfileTooltip(chat.targetName or chat.name, chat.targetName and chat.targetSteam or chat.steamID));
@@ -326,8 +356,8 @@ local function ResizeOverlay()
     Controls.HistoryNew:SetOffsetVal(gameWidth + 10, 42);
     Controls.HistoryResume:SetOffsetVal(gameWidth + 166, 42);
     Controls.HistoryStop:SetOffsetVal(gameWidth + 330, 42);
-    Controls.ExpandLabel:SetText(expanded and "Compact" or "Expand");
-    Controls.WindowDimensions:SetText("Current: " .. w .. " x " .. h);
+    Controls.ExpandLabel:SetText(expanded and T("compact") or T("expand"));
+    Controls.WindowDimensions:SetText(T("current.size", w, h));
     syncingSize=true;
     Controls.WidthSlider:SetValue((expandedWidth-700)/900);
     Controls.HeightSlider:SetValue((expandedHeight-620)/380);
@@ -344,8 +374,8 @@ ShowPage = function(page, compact)
     Controls.ProfilesPanel:SetHide(page ~= "notes");
     Controls.HistoryPage:SetHide(page ~= "history");
     Controls.Settings:SetHide(page ~= "settings");
-    for _, tab in ipairs({{"ChatTabLabel","chat","Chat"},{"NotesTabLabel","notes","Player notes"},{"HistoryTabLabel","history","Game history"},{"SettingsTabLabel","settings","Settings"}}) do
-        Controls[tab[1]]:SetText(page == tab[2] and ("( " .. tab[3] .. " )") or tab[3]);
+    for _, tab in ipairs({{"ChatTabLabel","chat","tab.chat"},{"NotesTabLabel","notes","tab.notes"},{"HistoryTabLabel","history","tab.history"},{"SettingsTabLabel","settings","tab.settings"}}) do
+        Controls[tab[1]]:SetText(page == tab[2] and ("( " .. T(tab[3]) .. " )") or T(tab[3]));
     end
     ResizeOverlay();
 end
@@ -360,7 +390,7 @@ local function InvalidateDraft()
     translatedDraft = nil;
     translatedSource = nil;
     Controls.SendTranslated:SetDisabled(true);
-    Preview("Enter or Send submits your message. Translation follows the toggle.");
+    Preview(T("preview.hint"));
 end
 
 local function RefreshSendState()
@@ -374,16 +404,44 @@ local function RefreshSendState()
 end
 
 local function RefreshLabels()
-    Controls.Source:GetButton():SetText(languageNames[sourceLanguages[sourceIndex]]);
-    Controls.Target:GetButton():SetText("Send in: " .. languageNames[targetLanguages[targetIndex]]);
-    Controls.Incoming:GetButton():SetText(languageNames[incomingLanguages[incomingIndex]]);
+    Controls.Source:GetButton():SetText(LanguageName(sourceLanguages[sourceIndex]));
+    Controls.Target:GetButton():SetText(T("send.in", LanguageName(targetLanguages[targetIndex])));
+    Controls.Target:GetButton():SetToolTipString(T("tip.target"));
+    Controls.Incoming:GetButton():SetText(LanguageName(readerLanguage));
+    Controls.Incoming:GetButton():SetToolTipString(T("tip.reader"));
     local recipientSteam = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil;
-    Controls.Recipient:GetButton():SetText(recipientID == -1 and "To: All" or ("To: " .. IGT_Text.StripColors(DisplayName(selectedRecipientName or "Player left", recipientSteam)) .. (recipientNames[recipientID] ~= selectedRecipientName and " (left)" or "")));
-    Controls.Recipient:GetButton():SetToolTipString(recipientID == -1 and "Send to all players" or ProfileTooltip(selectedRecipientName, recipientSteam));
-    Controls.SendModeLabel:SetText(translateOnSend and "Translate: ON" or "Translate: OFF");
-    Controls.ReceiveLabel:SetText(receiving and "Auto non-Latin: ON" or "Auto non-Latin: OFF");
-    Controls.PrefixLabel:SetText("Every message: " .. (selectedIcon ~= "" and selectedIcon or "no icon"));
-    Controls.MessageColorLabel:SetText(IGT_Text.Colorize("Colour: " .. colors[colorIndex][1], colors[colorIndex][2]));
+    Controls.Recipient:GetButton():SetText(recipientID == -1 and T("to.all") or T("to.player", IGT_Text.StripColors(DisplayName(selectedRecipientName or T("player.left"), recipientSteam)) .. (recipientNames[recipientID] ~= selectedRecipientName and T("left.suffix") or "")));
+    Controls.Recipient:GetButton():SetToolTipString(recipientID == -1 and T("tip.to.all") or ProfileTooltip(selectedRecipientName, recipientSteam));
+    Controls.SendModeLabel:SetText(translateOnSend and T("translate.on") or T("translate.off"));
+    Controls.ReceiveLabel:SetText(receiving and T("auto.on") or T("auto.off"));
+    Controls.PrefixLabel:SetText(T("prefix", selectedIcon ~= "" and selectedIcon or T("prefix.none")));
+    Controls.MessageColorLabel:SetText(IGT_Text.Colorize(T("colour", T(colors[colorIndex][1])), colors[colorIndex][2]));
+end
+
+-- Fixed labels of the layout, in the reader's language.
+local fixedTexts = { DragHint="drag", MinimizeText="minimize", PlayerNotesText="notes", SendText="send", PasteText="paste",
+    CancelSendText="cancel", MoreText="settings", SettingsTitle="settings.title", CloseSettingsText="close",
+    TranslateText="preview", SendTranslatedText="send.preview", CopyLastText="copy.last", ClearPrefixText="no.icon",
+    TestText="test", SettingsHelp="settings.help", SourceCaption="source.caption", IncomingCaption="reader.caption",
+    CopyDraftText="copy.draft", TranslationPrivacy="privacy", WindowSizeTitle="window.size", SizeSmallText="small",
+    SizeMediumText="medium", SizeLargeText="large", WidthCaption="width", HeightCaption="height", WindowHelp="window.help",
+    ProfilesTitle="notes.title", CloseProfilesText="close", AliasCaption="alias.caption", NoteCaption="note.caption",
+    ProfileSaveText="save.local", ProfileDeleteText="clear.saved", NotesPrivacy="notes.privacy", HistoryTitle="history.title",
+    HistoryNewText="history.new", HistoryResumeText="history.resume", HistoryStopText="history.stop", HistoryHelp="history.help",
+    ForceGoText="translate", ForceCancelText="cancel", EmojiTitle="emoji.title", EmojiCloseText="close",
+    PlayerMenuNoteText="menu.note", PlayerMenuDetailsText="menu.details", PlayerMenuCloseText="close" };
+local fixedTips = { Toggle="tip.toggle", HeaderDrag="tip.drag", Minimize="tip.minimize", PlayerNotes="tip.notes",
+    EmojiButton="tip.emoji", SendMode="tip.sendmode", SendOriginal="tip.send", Translate="tip.preview", Test="tip.test",
+    MessageColor="tip.color", Receive="tip.auto", IconGold="icon.gold", IconFood="icon.food", IconProduction="icon.production",
+    IconScience="icon.science", IconCulture="icon.culture", IconFaith="icon.faith", IconHappiness="icon.happiness",
+    IconMoves="icon.moves", IconStrength="icon.strength", EmojiGold="icon.gold", EmojiFood="icon.food",
+    EmojiProduction="icon.production", EmojiScience="icon.science", EmojiCulture="icon.culture", EmojiFaith="icon.faith",
+    EmojiHappiness="icon.happiness", EmojiMoves="icon.moves", EmojiStrength="icon.strength" };
+local function ApplyFixedTexts()
+    for id, key in pairs(fixedTexts) do if Controls[id] then Controls[id]:SetText(T(key)); end end
+    for id, key in pairs(fixedTips) do if Controls[id] then Controls[id]:SetToolTipString(T(key)); end end
+    Controls.ForceHelp:SetText(T("force.help", LanguageName(readerLanguage)));
+    Controls.OpacityLabel:SetText(T("background", math.floor(opacities[opacityIndex] * 100)));
 end
 
 local function Dropdown(control, entries, selected)
@@ -422,9 +480,9 @@ end
 
 local function CivilizationName(id)
     local player = Players and Players[id];
-    if not player or not GameInfo or not GameInfo.Civilizations then return "Unknown"; end
+    if not player or not GameInfo or not GameInfo.Civilizations then return T("unknown"); end
     local civ = GameInfo.Civilizations[player:GetCivilizationType()];
-    if not civ then return "Unknown"; end
+    if not civ then return T("unknown"); end
     return Locale.ConvertTextKey(civ.ShortDescription);
 end
 
@@ -450,17 +508,17 @@ local function HistoryDetails(key)
     selectedHistoryKey = key;
     local encounters = key and history.Encounters(historyOwner,key) or {};
     if #encounters == 0 then
-        Controls.HistorySummary:SetText("No games recorded for this player yet.");
-        Controls.HistoryText:SetText("Start recording during a multiplayer game. Lobby visits are not counted.");
+        Controls.HistorySummary:SetText(T("history.none"));
+        Controls.HistoryText:SetText(T("history.start"));
     else
         local latest = encounters[1];
-        local identity = latest.steam_id ~= "" and ("Steam ID: " .. latest.steam_id) or "Name match only; account identity unavailable";
-        Controls.HistorySummary:SetText(PlainText(latest.original_name) .. " | " .. #encounters .. " recorded game(s)[NEWLINE]" .. identity .. "[NEWLINE]Last seen: " .. latest.last_utc .. " UTC");
+        local identity = latest.steam_id ~= "" and T("profile.steam", latest.steam_id) or T("history.no.account");
+        Controls.HistorySummary:SetText(T("history.games", PlainText(latest.original_name), #encounters) .. "[NEWLINE]" .. identity .. "[NEWLINE]" .. T("history.last.seen", latest.last_utc));
         local lines = {};
         for i, e in ipairs(encounters) do
-            if i > 100 then lines[#lines + 1] = "Showing the latest 100 games."; break; end
+            if i > 100 then lines[#lines + 1] = T("history.latest100"); break; end
             local names={};for _, name in ipairs(e.names or {e.original_name}) do names[#names+1]=PlainText(name);end
-            lines[#lines + 1] = "#" .. e.game_id .. " | " .. e.first_utc .. " UTC | " .. PlainText(e.title) .. "[NEWLINE]You: " .. PlainText(e.my_civ) .. "    Them: " .. PlainText(e.their_civ) .. "[NEWLINE]Name(s) used: " .. table.concat(names,", ") .. "[NEWLINE]Observed turns " .. e.first_turn .. " - " .. e.last_turn .. " | Last seen " .. e.last_utc .. " UTC[NEWLINE]Map: " .. PlainText(e.map);
+            lines[#lines + 1] = T("history.entry", e.game_id, e.first_utc, PlainText(e.title), PlainText(e.my_civ), PlainText(e.their_civ), table.concat(names,", "), e.first_turn, e.last_turn, e.last_utc, PlainText(e.map));
         end
         Controls.HistoryText:SetText(table.concat(lines,"[NEWLINE][NEWLINE]"));
     end
@@ -469,8 +527,8 @@ local function HistoryDetails(key)
     if name and key then
         local summary=history.Summary(historyOwner,key,name,activeGame);
         local names={};for _, previous in ipairs(summary.names) do names[#names+1]=PlainText(previous);end
-        Controls.HistoryText:SetText("Previously known as: " .. (#names>0 and table.concat(names,", ") or "No other names recorded") .. "[NEWLINE][NEWLINE]" .. Controls.HistoryText:GetText());
-        if person then Controls.HistorySummary:SetText(PlainText(DisplayName(person.name,person.steam)) .. " | " .. summary.games .. " prior recorded game(s)[NEWLINE]" .. (person.steam and ("Steam ID: " .. person.steam) or "Name match only"));end
+        Controls.HistoryText:SetText(T("history.known", #names>0 and table.concat(names,", ") or T("history.no.names")) .. "[NEWLINE][NEWLINE]" .. Controls.HistoryText:GetText());
+        if person then Controls.HistorySummary:SetText(T("history.prior", PlainText(DisplayName(person.name,person.steam)), summary.games) .. "[NEWLINE]" .. (person.steam and T("profile.steam", person.steam) or T("profile.name.only")));end
     end
     Controls.HistoryScroll:CalculateInternalSize();
 end
@@ -488,7 +546,7 @@ RefreshHistory = function()
     Dropdown(Controls.HistoryPlayer,entries,function(id)
         historyPerson=nil;Controls.HistoryPlayer:GetButton():SetText(entries[id].name); HistoryDetails(people[id].player_key);
     end);
-    Controls.HistoryPlayer:GetButton():SetText(chosen and entries[chosen].name or (historyPerson and PlainText(DisplayName(historyPerson.name,historyPerson.steam)) or "No recorded players yet"));
+    Controls.HistoryPlayer:GetButton():SetText(chosen and entries[chosen].name or (historyPerson and PlainText(DisplayName(historyPerson.name,historyPerson.steam)) or T("history.no.players")));
     HistoryDetails(chosen and people[chosen].player_key or (historyPerson and IGT_History.Key(historyPerson.name,historyPerson.steam)));
     local games, gameEntries, gameChoice = history.Games(historyOwner), {}, nil;
     for i, game in ipairs(games) do
@@ -500,13 +558,13 @@ RefreshHistory = function()
     Dropdown(Controls.HistoryGame,gameEntries,function(id)
         selectedGame=tonumber(games[id].id); Controls.HistoryGame:GetButton():SetText(gameEntries[id].name);
     end);
-    Controls.HistoryGame:GetButton():SetText(gameChoice and gameEntries[gameChoice].name or "No previous game records");
+    Controls.HistoryGame:GetButton():SetText(gameChoice and gameEntries[gameChoice].name or T("history.no.games"));
     local available = not isLobby and PreGame.IsMultiplayerGame();
     Controls.HistoryNew:SetDisabled(not available or activeGame ~= nil);
     Controls.HistoryResume:SetDisabled(not available or activeGame ~= nil or not selectedGame);
     Controls.HistoryStop:SetDisabled(not activeGame);
-    Controls.HistoryStatus:SetText(isLobby and "Lobby: history can be viewed here. Start recording once the game begins." or
-        (activeGame and ("Recording game #" .. activeGame .. ". Dates, turns and civilizations update as you play.") or "Recording is off. Choose Record new game, or Continue selected after loading a save."));
+    Controls.HistoryStatus:SetText(isLobby and T("history.lobby") or
+        (activeGame and T("history.recording", activeGame) or T("history.off")));
 end
 
 local function StartRecording(resume)
@@ -538,7 +596,7 @@ RefreshRecipients = function()
     recipientNames = roster;
     if joined ~= recipientSignature then
         recipientSignature = joined;
-        local entries = { { id = -1, name = "All players" } };
+        local entries = { { id = -1, name = T("all.players") } };
         for _, id in ipairs(ids) do entries[#entries + 1] = { id = id, name = DisplayName(roster[id], IGT_History.SteamID(id)), tooltip = ProfileTooltip(roster[id], IGT_History.SteamID(id)) } end
         Dropdown(Controls.Recipient, entries, function(id)
             recipientID = id;
@@ -555,8 +613,8 @@ RefreshRecipients = function()
                     announcedPlayers[key]=true;
                     local summary=history.Summary(historyOwner,key,name,activeGame);
                     local names={};for i=1,math.min(3,#summary.names) do names[#names+1]=PlainText(summary.names[i]);end
-                    local former=#names>0 and ("; previously: " .. table.concat(names,", ") .. (#summary.names>3 and (" +" .. (#summary.names-3) .. " more") or "")) or "";
-                    AddLine("Player: " .. PlainText(DisplayName(name,steam)) .. " - " .. summary.games .. " recorded game(s) together" .. former .. (not steam and " (name match only)" or ""));
+                    local former=#names>0 and T("previously", table.concat(names,", ") .. (#summary.names>3 and T("more", #summary.names-3) or "")) or "";
+                    AddLine(T("player.joined", PlainText(DisplayName(name,steam)), summary.games, former .. (not steam and T("name.match") or "")));
                 end
             end
         end
@@ -568,13 +626,13 @@ local function LoadProfileEditor(name, steamID)
     editingName = name;
     editingSteam = steamID or nameAccounts[name];
     local profile = ProfileFor(name, editingSteam) or { alias = "", note = "" };
-    Controls.ProfilePlayer:GetButton():SetText(name and PlainText(name) or "No players yet");
+    Controls.ProfilePlayer:GetButton():SetText(name and PlainText(name) or T("profile.no.players"));
     Controls.ProfileAlias:SetText(profile.alias);
     Controls.ProfileNote:SetText(profile.note);
     Controls.ProfileSave:SetDisabled(not name or (duplicateNames[name] == true and not editingSteam));
     Controls.ProfileDelete:SetDisabled(not name or not ProfileFor(name, editingSteam));
-    Controls.ProfileStatus:SetText(name and (duplicateNames[name] and not editingSteam and "Duplicate name: cannot distinguish these players." or "Hover a chat message to read its note. Save applies your changes locally.") or "Join a lobby or game with other players first.");
-    Controls.ProfileIdentity:SetText(editingSteam and ("Steam ID: " .. editingSteam .. ". Saved notes follow this account across name changes.") or "Steam ID unavailable. Matched by original name; changed or shared names cannot reliably identify a person.");
+    Controls.ProfileStatus:SetText(name and (duplicateNames[name] and not editingSteam and T("profile.dup.status") or T("profile.hint")) or T("profile.join"));
+    Controls.ProfileIdentity:SetText(editingSteam and T("profile.steam.follow", editingSteam) or T("profile.no.steam"));
 end
 
 OpenProfiles = function(preferred)
@@ -604,10 +662,10 @@ end
 local function SaveProfile(remove)
     if not initialized or not editingName then return; end
     RefreshRecipients();
-    if not remove and duplicateNames[editingName] and not editingSteam then Controls.ProfileStatus:SetText("Duplicate name: cannot distinguish these players."); return; end
+    if not remove and duplicateNames[editingName] and not editingSteam then Controls.ProfileStatus:SetText(T("profile.dup.status")); return; end
     local alias = PlainText(Controls.ProfileAlias:GetText()):match("^%s*(.-)%s*$");
     local note = PlainText(Controls.ProfileNote:GetText()):match("^%s*(.-)%s*$");
-    if not remove and (#alias > 160 or #note > 2000) then Controls.ProfileStatus:SetText("Nickname or note is too long. Please shorten it."); return; end
+    if not remove and (#alias > 160 or #note > 2000) then Controls.ProfileStatus:SetText(T("profile.too.long")); return; end
     if remove or (alias == "" and note == "") then
         Query("DELETE FROM igt_profiles WHERE original_name=" .. Quote(editingName));
         profiles[editingName] = nil;
@@ -622,36 +680,54 @@ local function SaveProfile(remove)
     recipientSignature = "<profiles changed>";
     RefreshRecipients();
     OpenProfiles(editingName);
-    Controls.ProfileStatus:SetText(remove and "Saved nickname and note removed." or "Saved locally. No note or nickname was sent to players.");
+    Controls.ProfileStatus:SetText(remove and T("profile.removed") or T("profile.saved"));
 end
 
-local function SetupDropdowns()
+local SetupDropdowns;
+local function SetReaderLanguage(code)
+    readerLanguage = code;
+    State("reader_language", code);
+    SetupDropdowns();
+    ApplyFixedTexts();
+    ShowPage(activePage, not expanded);
+    InvalidateDraft();
+    RefreshChatNames();
+    SetStatus(T("status.language", LanguageName(code)));
+end
+
+SetupDropdowns = function()
     for _, spec in ipairs({ {Controls.Source, sourceLanguages, "source"}, {Controls.Target, targetLanguages, "target"}, {Controls.Incoming, incomingLanguages, "incoming"} }) do
         local entries, kind = {}, spec[3];
-        for i, code in ipairs(spec[2]) do entries[#entries + 1] = { id = i, name = languageNames[code] } end
+        for i, code in ipairs(spec[2]) do entries[#entries + 1] = { id = i, name = LanguageName(code) } end
         Dropdown(spec[1], entries, function(id)
-            if kind == "source" then sourceIndex = id; InvalidateDraft();
-            elseif kind == "target" then targetIndex = id; InvalidateDraft();
-            else incomingIndex = id; end
+            if kind == "source" then sourceIndex = id; State("source_language", sourceLanguages[id]); InvalidateDraft();
+            elseif kind == "target" then targetIndex = id; State("target_language", targetLanguages[id]); InvalidateDraft();
+            else SetReaderLanguage(incomingLanguages[id]); end
             RefreshLabels();
         end);
     end
     recipientSignature = "<uninitialized>";
     RefreshRecipients();
-    Controls.Incoming:SetDisabled(true);
-    Controls.IncomingCaption:SetText("Incoming translation");
+    Controls.Incoming:SetDisabled(false);
 end
 
 local function StartSession()
     Query("CREATE TABLE IF NOT EXISTS " .. requestTable .. "(id INTEGER PRIMARY KEY AUTOINCREMENT, session TEXT, kind TEXT, source TEXT, target TEXT, text TEXT, status TEXT, result TEXT, detected TEXT, error TEXT, created REAL, started REAL)");
     Query("CREATE TABLE IF NOT EXISTS igt_state(key TEXT PRIMARY KEY,value TEXT)");
-    for _, setting in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('window_width','window_height')")) do
+    -- Spam must not slow every frame: look up this session's rows by index.
+    Query("CREATE INDEX IF NOT EXISTS igt_" .. requestTable .. "_session ON " .. requestTable .. "(session,status,id)");
+    local saved = {};
+    for _, setting in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('window_width','window_height','reader_language','target_language','source_language')")) do
+        saved[setting.key] = setting.value;
         local value=tonumber(setting.value);
         if value then
             if setting.key=='window_width' then expandedWidth=math.max(700,math.min(1600,math.floor(value)));
-            else expandedHeight=math.max(620,math.min(1000,math.floor(value))); end
+            elseif setting.key=='window_height' then expandedHeight=math.max(620,math.min(1000,math.floor(value))); end
         end
     end
+    readerLanguage = IndexOf(incomingLanguages, saved.reader_language) and saved.reader_language or GameLanguage();
+    targetIndex = IndexOf(targetLanguages, saved.target_language) or IndexOf(targetLanguages, readerLanguage == "en" and "ru" or "en");
+    sourceIndex = IndexOf(sourceLanguages, saved.source_language) or 1;
     Query("CREATE TABLE IF NOT EXISTS igt_profiles(original_name TEXT PRIMARY KEY,alias TEXT NOT NULL,note TEXT NOT NULL)");
     history = IGT_History.Open(Query);
     historyOwner = IGT_History.Key(PlayerName(LocalPlayer()), IGT_History.SteamID(LocalPlayer()));
@@ -672,6 +748,9 @@ local function StartSession()
     local rows = Query("SELECT strftime('%s','now') || '-' || lower(hex(randomblob(8))) AS token");
     session = rows[1].token;
     State("session", session);
+    -- Finished work of earlier sessions is never read again; keep the table small.
+    Query("DELETE FROM " .. requestTable .. " WHERE session IS NULL OR session<>" .. Quote(session));
+    autoBudget, autoPausedUntil = {}, 0;
     State("clipboard_paste_request", "");
     State("clipboard_paste_token", "");
     State("clipboard_copy", "");
@@ -679,7 +758,7 @@ local function StartSession()
         native = IGT_Native.Open(IGT_Config,Query,State,session);
         Controls.Paste:SetHide(true); Controls.CopyDraft:SetHide(true); Controls.CopyLast:SetHide(true);
         Controls.OnlineTranslation:SetHide(false);
-        Controls.OnlineTranslationLabel:SetText(native.Enabled() and "Online translation: ON" or "Enable online translation");
+        Controls.OnlineTranslationLabel:SetText(native.Enabled() and T("online.on") or T("online.enable"));
         Controls.TranslationPrivacy:SetHide(false);
     end
     pending = {};
@@ -695,22 +774,22 @@ local function StartSession()
 end
 
 local function Enqueue(kind, text, source, target, info)
-    if not initialized then SetStatus("Translator database is not ready."); return; end
+    if not initialized then SetStatus(T("status.db")); return; end
     local online = Query("SELECT value FROM igt_state WHERE key=" .. Quote(IGT_Config and "native_online_enabled" or "online_translation_enabled"));
-    if online[1] and online[1].value == "0" then SetStatus(IGT_Config and "Enable online translation in Settings first, then submit again." or "Enable online translation in the companion first, then submit again."); return; end
-    if not text or not text:find("%S") then SetStatus("Type or paste a message first."); return; end
+    if online[1] and online[1].value == "0" then SetStatus(IGT_Config and T("status.enable") or T("status.enable.companion")); return; end
+    if not text or not text:find("%S") then SetStatus(T("status.type")); return; end
     local count = 0;
     for _ in pairs(pending) do count = count + 1; end
-    if count >= 50 then SetStatus("Translation queue is full. Wait for the current requests."); return; end
+    if count >= 50 then SetStatus(T("status.queue.full")); return; end
     Query("INSERT INTO " .. requestTable .. "(session,kind,source,target,text,status,created) VALUES(" ..
         Quote(session) .. "," .. Quote(kind) .. "," .. Quote(source) .. "," .. Quote(target) .. "," ..
         Quote(text) .. ",'pending',CAST(strftime('%s','now') AS REAL))");
     local rows = Query("SELECT last_insert_rowid() AS id");
     info = info or {};
-    info.kind, info.target, info.original = kind, target, text;
+    info.kind, info.target, info.original, info.source = kind, target, text, source;
     pending[tonumber(rows[1].id)] = info;
     RefreshSendState();
-    SetStatus(IGT_Config and "Translating..." or "Queued for translation. Start the companion if it is offline.");
+    SetStatus(IGT_Config and T("status.translating") or T("status.queued"));
     return true;
 end
 
@@ -719,28 +798,81 @@ local function RowIsLive(row)
     return false;
 end
 
-TranslateRow = function(row, source, choose)
+-- A message is foreign when its letters are not the reader's alphabet. Latin
+-- messages are never automatic: most players read English chat, and the
+-- Translate button is there when one is not understood.
+local function IsForeign(text)
+    local script = IGT_Text.Script(text);
+    if not script or script == "latin" then return false; end
+    return script ~= (readerScripts[readerLanguage] or "latin");
+end
+
+local function Remember(target, original, result, detected)
+    local key = target .. "\n" .. original;
+    if not recentTranslations[key] then recentOrder[#recentOrder + 1] = key; end
+    recentTranslations[key] = { text = result, detected = detected };
+    if #recentOrder > 100 then recentTranslations[table.remove(recentOrder, 1)] = nil; end
+end
+
+local function ShowIncomingTranslation(row, target, result, detected)
+    if not RowIsLive(row) or not row.chat then return; end
+    local tag = result ~= row.chat.original and ("(TR " .. tostring(detected or "?") .. ">" .. target .. ") ") or "";
+    row.translationPending = false; row.forceChoose = false; row.translationTarget = target;
+    row.chat.translated = result; row.translationTag = tag; row.showOriginal = false;
+    row.chat.prefix, row.chat.text = tag, result;
+    row.TranslateButton:SetDisabled(false); row.TranslateLabel:SetText(T("original"));
+    RenderChat(row);
+end
+
+-- Per-sender token bucket plus a cap on waiting automatic requests.
+local function AutomaticAllowed(chat, text)
+    if #text > AUTO_MAX_BYTES or clock < autoPausedUntil then return false; end
+    local waiting = 0;
+    for _, info in pairs(pending) do
+        if info.kind == "auto" then
+            waiting = waiting + 1;
+            -- The same spam line already on its way is shown from the cache later.
+            if info.original == text and info.target == readerLanguage then return false; end
+        end
+    end
+    if waiting >= AUTO_WAITING then SetStatus(T("status.auto.busy")); return false; end
+    local sender = chat.steamID or chat.name;
+    local budget = autoBudget[sender] or { tokens = AUTO_BURST, time = clock };
+    budget.tokens = math.min(AUTO_BURST, budget.tokens + (clock - budget.time) / AUTO_REFILL_SECONDS);
+    budget.time = clock;
+    autoBudget[sender] = budget;
+    if budget.tokens < 1 then SetStatus(T("status.auto.limited", DisplayName(chat.name, chat.steamID))); return false; end
+    budget.tokens = budget.tokens - 1;
+    return true;
+end
+
+TranslateRow = function(row, source, choose, automatic)
     if not initialized or not RowIsLive(row) or not row.chat or row.chat.own or row.translationPending then return; end
     if row.chat.translated and not source and not choose then
         row.showOriginal = not row.showOriginal;
         row.chat.text = row.showOriginal and row.chat.original or row.chat.translated;
         row.chat.prefix = row.showOriginal and "" or row.translationTag;
-        row.TranslateLabel:SetText(row.showOriginal and "English" or "Original");
+        row.TranslateLabel:SetText(row.showOriginal and LanguageName(row.translationTarget or readerLanguage) or T("original"));
         RenderChat(row); return;
     end
-    if not source and (choose or row.forceChoose or not IGT_Text.HasNonLatinLetters(row.chat.original)) then
+    if not source and (choose or row.forceChoose) then
         forceRow,forceSource=row,nil;
         local entries={};
-        for i, lang in ipairs(manualLanguages) do entries[#entries+1]={id=i,name=lang[2]}; end
+        for i, code in ipairs(manualLanguages) do entries[#entries+1]={id=i,name=LanguageName(code)}; end
         Dropdown(Controls.ForceSource,entries,function(id)
-            forceSource=manualLanguages[id][1]; Controls.ForceSource:GetButton():SetText(manualLanguages[id][2]); Controls.ForceGo:SetDisabled(false);
+            forceSource=manualLanguages[id]; Controls.ForceSource:GetButton():SetText(LanguageName(forceSource)); Controls.ForceGo:SetDisabled(false);
         end);
-        Controls.ForceSource:GetButton():SetText("Choose message language");
+        Controls.ForceSource:GetButton():SetText(T("choose.language"));
+        Controls.ForceHelp:SetText(T("force.help", LanguageName(readerLanguage)));
         Controls.ForceGo:SetDisabled(true); Controls.ForcePanel:SetHide(false);
         return;
     end
-    if Enqueue("incoming",row.chat.original,source or "auto","en",{row=row}) then
-        row.translationPending=true; row.TranslateButton:SetDisabled(true); row.TranslateLabel:SetText("Working...");
+    source = source or "auto";
+    local known = source == "auto" and recentTranslations[readerLanguage .. "\n" .. row.chat.original];
+    if known then ShowIncomingTranslation(row, readerLanguage, known.text, known.detected); return; end
+    if automatic and not AutomaticAllowed(row.chat, row.chat.original) then return; end
+    if Enqueue(automatic and "auto" or "incoming",row.chat.original,source,readerLanguage,{row=row}) then
+        row.translationPending=true; row.TranslateButton:SetDisabled(true); row.TranslateLabel:SetText(T("working"));
     end
 end
 
@@ -758,8 +890,8 @@ local function OnChat(fromPlayer, toPlayer, text, targetType)
         -- The front-end lobby does not expose ChatTargetTypes in vanilla.
         local team = ChatTargetTypes and targetType == ChatTargetTypes.CHATTARGET_TEAM;
         local private = ChatTargetTypes and targetType == ChatTargetTypes.CHATTARGET_PLAYER;
-        if team then audience = " (team)";
-        elseif private then audience = " (private)"; end
+        if team then audience = T("team");
+        elseif private then audience = T("private"); end
         local row = AddLine("",nil,private and "Magenta_Chat" or team and "Green_Chat" or own and "Gray_Chat" or nil);
         row.chat = { original=text,name = PlayerName(fromPlayer), steamID=IGT_History.SteamID(fromPlayer), own = own, audience = audience, text = text,
             targetSteam=own and private and IGT_History.SteamID(toPlayer) or nil,
@@ -775,12 +907,12 @@ local function OnChat(fromPlayer, toPlayer, text, targetType)
             end);
         end
         if not own then
-            row.TranslateButton:SetHide(false); row.TranslateLabel:SetText("Translate");
-            row.TranslateButton:SetToolTipString("Translate to English. Right-click to choose a different source, including Russian (Latin letters).");
+            row.TranslateButton:SetHide(false); row.TranslateLabel:SetText(T("translate"));
+            row.TranslateButton:SetToolTipString(T("tip.row", LanguageName(readerLanguage)));
             row.TranslateButton:RegisterCallback(Mouse.eLClick,function() Safe(function() TranslateRow(row); end); end);
             if Mouse.eRClick then row.TranslateButton:RegisterCallback(Mouse.eRClick,function() Safe(function() TranslateRow(row,nil,true); end); end); end
         end
-        if receiving and not own and IGT_Text.HasNonLatinLetters(text) then TranslateRow(row,"auto"); end
+        if receiving and not own and IsForeign(text) then TranslateRow(row,"auto",nil,true); end
     end);
 end
 
@@ -794,31 +926,31 @@ local function TranslateDraft()
 end
 
 local function BeginSend(text, translated, options)
-    if not initialized then SetStatus("Open a lobby or game before sending."); return; end
-    if #sendQueue > 100 then SetStatus("Send queue is full; wait or cancel."); return; end
-    if not isLobby and not PreGame.IsMultiplayerGame() then SetStatus("Sending is available in multiplayer. The local translation test still works."); return; end
-    if not text or not text:find("%S") then SetStatus("There is no message to send."); return; end
+    if not initialized then SetStatus(T("status.open.game")); return; end
+    if #sendQueue > 100 then SetStatus(T("status.send.full")); return; end
+    if not isLobby and not PreGame.IsMultiplayerGame() then SetStatus(T("status.mp.only")); return; end
+    if not text or not text:find("%S") then SetStatus(T("status.nothing")); return; end
     options = options or { original = Controls.Draft:GetText(), recipient = recipientID, name = selectedRecipientName, steamID = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil, target = targetLanguages[targetIndex], icon = selectedIcon, color = colors[colorIndex][2] };
     if options.recipient ~= -1 and (PlayerRoster()[options.recipient] ~= options.name or (options.steamID and IGT_History.SteamID(options.recipient) ~= options.steamID)) then
-        SetStatus("Recipient left or changed. Message not sent. Select a player again."); return;
+        SetStatus(T("status.recipient.changed")); return;
     end
     local prefix = (translated and "(TR) " or "") .. (options.icon ~= "" and options.icon .. " " or "");
     local color = options.color;
     local colorBytes = color ~= "" and (#color + 12) or 0;
     text = IGT_Text.SafeDisplay(color ~= "" and IGT_Text.StripColors(text) or text);
     local chunks, splitError = IGT_Text.Split(text, 240 - #prefix - colorBytes);
-    if not chunks or #chunks == 0 then SetStatus(splitError or "There is no message to send."); return; end
-    if #chunks > 20 then SetStatus("Message is too long: shorten it to at most 20 chat parts."); return; end
+    if not chunks or #chunks == 0 then SetStatus(splitError or T("status.nothing")); return; end
+    if #chunks > 20 then SetStatus(T("status.too.long")); return; end
     local player = LocalPlayer();
     local batch = { original = options.original,
-        label = "You" .. (translated and (" -> " .. options.target) or "") .. (options.recipient ~= -1 and (" to " .. DisplayName(options.name,options.steamID) .. " (private)") or ""),
+        label = (translated and T("you.to", options.target) or T("you")) .. (options.recipient ~= -1 and T("to.private", DisplayName(options.name,options.steamID)) or ""),
         total = #chunks, sent = 0, color = color, translated = translated,
         channelColor = options.recipient ~= -1 and "Magenta_Chat" or "Gray_Chat" };
     for i, chunk in ipairs(chunks) do
         sendQueue[#sendQueue + 1] = { text = IGT_Text.Colorize(prefix .. chunk, color), team = -1, player = options.recipient, recipientName = options.name, steamID = options.steamID, active = player, session = session, batch = batch };
     end
     Controls.CancelSend:SetDisabled(false);
-    SetStatus("Sending " .. #chunks .. " part(s) to " .. (options.recipient == -1 and "All" or options.name) .. ".");
+    SetStatus(T("status.sending", #chunks, options.recipient == -1 and T("all") or options.name));
     return true;
 end
 
@@ -827,7 +959,7 @@ local function SubmitDraft()
         local text = Controls.Draft:GetText();
         if not text or not text:find("%S") then return; end
         local roster = PlayerRoster();
-        if recipientID ~= -1 and (not roster[recipientID] or roster[recipientID] ~= selectedRecipientName) then SetStatus("Select an available recipient first."); return; end
+        if recipientID ~= -1 and (not roster[recipientID] or roster[recipientID] ~= selectedRecipientName) then SetStatus(T("status.select.recipient")); return; end
         local options = { original = text, recipient = recipientID, name = roster[recipientID], steamID = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil, target = targetLanguages[targetIndex], icon = selectedIcon, color = colors[colorIndex][2] };
         local accepted;
         if translateOnSend then
@@ -847,11 +979,26 @@ local function CancelSend()
     submissionGeneration = submissionGeneration + 1;
     if sendQueue[1] then
         local batch = sendQueue[1].batch;
-        if batch.row then UpdateLine(batch.row, IGT_Text.Colorize(batch.label .. " (stopped after " .. batch.sent .. "/" .. batch.total .. " parts): " .. batch.original, batch.color)); end
+        if batch.row then UpdateLine(batch.row, IGT_Text.Colorize(T("stopped.after", batch.label, batch.sent, batch.total, batch.original), batch.color)); end
     end
     sendQueue = {};
     RefreshSendState();
-    SetStatus("Queued chat parts cancelled. Already sent parts cannot be recalled.");
+    SetStatus(T("status.cancelled"));
+end
+
+local LIMIT_ERROR = "Translation allowance or request limit reached. Try later.";
+local serviceErrors = {
+    [LIMIT_ERROR]="err.limit", ["Translation service is unavailable. Try later."]="err.unavailable",
+    ["Translation service timed out. Try a shorter message."]="err.timeout",
+    ["Translation is too long. Try a shorter message."]="err.toolong",
+    ["Translation failed. Try a shorter message."]="err.failed", ["Shorten the message to 6,000 UTF-8 bytes."]="err.shorten",
+    ["Choose supported source and target languages."]="err.languages", ["Online translation is disabled."]="err.disabled",
+    ["Cannot verify the translation service response. Check your connection and try again."]="err.verify",
+    ["Translation did not finish."]="err.unfinished",
+    ["Request expired, was already used, or this download was revoked. Download a fresh copy if needed."]="err.expired" };
+ErrorText = function(err)
+    local key = serviceErrors[tostring(err or "")];
+    return key and T(key) or tostring(err or T("unknown.error"));
 end
 
 local function Poll()
@@ -865,7 +1012,7 @@ local function Poll()
         sendQueue = {};
         initialized = false;
         Controls.CancelSend:SetDisabled(true);
-        SetStatus("Another game session replaced this translator. Reload the game UI.");
+        SetStatus(T("status.replaced"));
         return;
     end
     local nowRows = Query("SELECT CAST(strftime('%s','now') AS REAL) AS now");
@@ -876,36 +1023,42 @@ local function Poll()
             if info.autoSend and info.generation == submissionGeneration then translating = true; break; end
         end
         for _, item in ipairs(sendQueue) do if item.batch.translated then translating = true; break; end end
-        if translating then CancelSend(); SetStatus("Online translation stopped; queued sends cancelled. Submit your draft again after reconnecting."); end
+        if translating then CancelSend(); SetStatus(T("status.stopped")); end
     end
     local rows = Query("SELECT id,status,result,detected,error FROM " .. requestTable .. " WHERE session=" .. Quote(session) ..
         " AND (status='done' OR status='error') ORDER BY id");
     for _, row in ipairs(rows) do
         local id = tonumber(row.id);
         local info = pending[id];
+        -- Read once: finished rows are not fetched again on later polls.
+        Query("UPDATE " .. requestTable .. " SET status='seen' WHERE id=" .. id);
         if info then
             pending[id] = nil;
             if info.row and info.row.chat and RowIsLive(info.row) then
                 info.row.translationPending=false; info.row.TranslateButton:SetDisabled(false);
-                info.row.TranslateLabel:SetText(row.status == "error" and "Retry" or "Original");
+                info.row.TranslateLabel:SetText(row.status == "error" and T("retry") or T("original"));
                 info.row.forceChoose=row.status == "error";
             end
             if row.status == "error" then
+                local reason = ErrorText(row.error);
+                if info.kind == "auto" and row.error == LIMIT_ERROR then
+                    autoPausedUntil = clock + 300; SetStatus(T("status.auto.paused"));
+                end
                 if info.autoSend then
-                    AddLine("Not sent: " .. info.original .. " (" .. tostring(row.error or "translation failed") .. ")");
-                    SetStatus("Translation failed; your unsent message is in the chat history.");
+                    AddLine(T("not.sent", info.original, row.error and reason or T("translation.failed")));
+                    SetStatus(T("status.failed.unsent"));
                 elseif info.kind ~= "outgoing" or info.generation == draftGeneration then
-                    SetStatus("Translation failed: " .. tostring(row.error or "unknown error"));
+                    if not (info.kind == "auto" and row.error == LIMIT_ERROR) then SetStatus(T("status.failed", row.error and reason or T("unknown.error"))); end
                     if info.kind ~= "outgoing" then
                         if info.row and info.row.chat then
-                            info.row.chat.prefix = "(Translation unavailable) "; RenderChat(info.row);
-                        else UpdateLine(info.row, "(Translation unavailable) " .. (info.name or "Test") .. ": " .. info.original); end
+                            info.row.chat.prefix = T("unavailable"); RenderChat(info.row);
+                        else UpdateLine(info.row, T("unavailable") .. (info.name or "Test") .. ": " .. info.original); end
                     end
                 end
             elseif info.kind == "outgoing" then
                 if info.autoSend then
                     if info.generation == submissionGeneration and info.active == LocalPlayer() then
-                        if not BeginSend(tostring(row.result or ""), true, info.options) then AddLine("Not sent: " .. info.original); end
+                        if not BeginSend(tostring(row.result or ""), true, info.options) then AddLine(T("not.sent.short", info.original)); end
                     end
                 elseif info.generation == draftGeneration and info.draft == Controls.Draft:GetText() then
                     translatedDraft = tostring(row.result or "");
@@ -913,27 +1066,27 @@ local function Poll()
                     lastTranslation = translatedDraft;
                     Preview("(TR " .. tostring(row.detected or "?") .. ">" .. info.target .. ") " .. translatedDraft);
                     Controls.SendTranslated:SetDisabled(translatedDraft == "");
-                    SetStatus("Translation ready. Review it and press Send preview.");
+                    SetStatus(T("status.ready"));
                 end
             else
                 lastTranslation = tostring(row.result or "");
-                local tag = lastTranslation ~= info.original and ("(TR " .. tostring(row.detected or "?") .. ">" .. info.target .. ") ") or "";
-                if info.row and info.row.chat then
-                    info.row.chat.translated=lastTranslation; info.row.translationTag=tag; info.row.showOriginal=false;
-                    info.row.chat.prefix, info.row.chat.text = tag, lastTranslation;
-                    RenderChat(info.row);
-                else UpdateLine(info.row, tag .. (info.name or "Test") .. ": " .. lastTranslation); end
-                SetStatus("Translation received.");
+                if info.source == "auto" then Remember(info.target, info.original, lastTranslation, row.detected); end
+                if info.row and info.row.chat then ShowIncomingTranslation(info.row, info.target, lastTranslation, row.detected);
+                else
+                    local tag = lastTranslation ~= info.original and ("(TR " .. tostring(row.detected or "?") .. ">" .. info.target .. ") ") or "";
+                    UpdateLine(info.row, tag .. (info.name or "Test") .. ": " .. lastTranslation);
+                end
+                SetStatus(T("status.received"));
             end
         end
     end
     RefreshSendState();
-    Controls.CompanionStatus:SetText(native and (native.Enabled() and "Online translation enabled" or "Online translation disabled") or alive and "Companion: connected" or "Companion: offline - run InGameTranslateCompanion.exe");
+    Controls.CompanionStatus:SetText(native and (native.Enabled() and T("online.enabled") or T("online.disabled")) or alive and T("companion.connected") or T("companion.offline"));
     if pasteToken and state.clipboard_paste_token == pasteToken then
         Controls.Draft:SetText(tostring(state.clipboard_paste_result or ""):gsub("[\r\n\t]", " "));
         InvalidateDraft();
         pasteToken = nil;
-        SetStatus("Clipboard pasted into draft.");
+        SetStatus(T("status.pasted"));
     end
 end
 
@@ -956,6 +1109,7 @@ end
 local function Update(delta)
     if native and initialized then Safe(function() native.Update(delta); end); end
     if not initialized then return; end
+    clock = clock + delta;
     UpdateWindowDrag();
     compatibilityElapsed = compatibilityElapsed + delta;
     if compatibilityElapsed >= 5 then
@@ -997,7 +1151,7 @@ local function Update(delta)
             local item = sendQueue[1];
             if item.active ~= LocalPlayer() or item.session ~= session then CancelSend();
             elseif item.player ~= -1 and (PlayerRoster()[item.player] ~= item.recipientName or (item.steamID and IGT_History.SteamID(item.player) ~= item.steamID)) then
-                CancelSend(); SetStatus("Private recipient left or changed; remaining messages cancelled.");
+                CancelSend(); SetStatus(T("status.private.left"));
             else
                 local echo = { text = item.text, age = 0 };
                 expectedEchoes[#expectedEchoes + 1] = echo;
@@ -1009,15 +1163,15 @@ local function Update(delta)
                     table.remove(sendQueue, 1);
                     local batch = item.batch;
                     batch.sent = batch.sent + 1;
-                    local progress = batch.sent < batch.total and (" (sending " .. batch.sent .. "/" .. batch.total .. ")") or "";
-                    local line = IGT_Text.Colorize(batch.label .. progress .. ": " .. batch.original, batch.color);
+                    local label = batch.sent < batch.total and T("sending", batch.label, batch.sent, batch.total) or batch.label;
+                    local line = IGT_Text.Colorize(label .. ": " .. batch.original, batch.color);
                     if batch.row then UpdateLine(batch.row, line); else batch.row = AddLine(line,nil,batch.channelColor); end
                 else
                     for i, queued in ipairs(expectedEchoes) do if queued == echo then table.remove(expectedEchoes, i); break; end; end
                     CancelSend();
                 end
                 RefreshSendState();
-                if ok then SetStatus(#sendQueue > 0 and ("Sending: " .. #sendQueue .. " part(s) remaining.") or "Message sent."); end
+                if ok then SetStatus(#sendQueue > 0 and T("status.remaining", #sendQueue) or T("status.sent")); end
             end
         end
     end
@@ -1086,7 +1240,7 @@ Controls.HistoryStop:RegisterCallback(Mouse.eLClick, function() Safe(function() 
 Controls.Opacity:RegisterCallback(Mouse.eLClick, function()
     opacityIndex=opacityIndex % #opacities + 1;
     Controls.PanelBackdrop:SetAlpha(opacities[opacityIndex]);
-    Controls.OpacityLabel:SetText("Background: " .. math.floor(opacities[opacityIndex]*100) .. "%");
+    Controls.OpacityLabel:SetText(T("background", math.floor(opacities[opacityIndex]*100)));
 end);
 Controls.ForceCancel:RegisterCallback(Mouse.eLClick,function() Controls.ForcePanel:SetHide(true); forceRow=nil; end);
 Controls.ForceGo:RegisterCallback(Mouse.eLClick,function()
@@ -1097,7 +1251,7 @@ Controls.ForceGo:RegisterCallback(Mouse.eLClick,function()
 end);
 Controls.PlayerNotes:RegisterCallback(Mouse.eLClick, function()
     Safe(function()
-        if not initialized then SetStatus("Open a lobby or game first."); return; end
+        if not initialized then SetStatus(T("status.open.first")); return; end
         if not Controls.ProfilesPanel:IsHidden() then ShowPage("chat");
         else OpenProfiles(selectedRecipientName or editingName); end
     end);
@@ -1108,8 +1262,8 @@ Controls.ProfileDelete:RegisterCallback(Mouse.eLClick, function() Safe(function(
 Controls.OnlineTranslation:RegisterCallback(Mouse.eLClick, function()
     if native then
         native.Enable(not native.Enabled());
-        Controls.OnlineTranslationLabel:SetText(native.Enabled() and "Online translation: ON" or "Enable online translation");
-        SetStatus(native.Enabled() and "Online translation enabled." or "Online translation disabled.");
+        Controls.OnlineTranslationLabel:SetText(native.Enabled() and T("online.on") or T("online.enable"));
+        SetStatus(native.Enabled() and T("status.online.on") or T("status.online.off"));
         if not native.Enabled() then CancelSend(); end
     end
 end);
@@ -1119,7 +1273,7 @@ Controls.Receive:RegisterCallback(Mouse.eLClick, function() receiving = not rece
 Controls.Translate:RegisterCallback(Mouse.eLClick, TranslateDraft);
 Controls.SendTranslated:RegisterCallback(Mouse.eLClick, function()
     Safe(function()
-        if translatedSource ~= Controls.Draft:GetText() then InvalidateDraft(); SetStatus("Draft changed. Preview again or press Send."); return; end
+        if translatedSource ~= Controls.Draft:GetText() then InvalidateDraft(); SetStatus(T("status.draft.changed")); return; end
         if BeginSend(translatedDraft, true) then Controls.Draft:SetText(""); InvalidateDraft(); Controls.Draft:TakeFocus(); end
     end);
 end);
@@ -1133,14 +1287,14 @@ Controls.Paste:RegisterCallback(Mouse.eLClick, function()
         pasteCounter = pasteCounter + 1;
         pasteToken = session .. ":" .. pasteCounter;
         State("clipboard_paste_request", pasteToken);
-        SetStatus("Asking the companion to paste your clipboard...");
+        SetStatus(T("status.paste.asking"));
     end);
 end);
 Controls.CopyDraft:RegisterCallback(Mouse.eLClick, function()
-    Safe(function() State("clipboard_copy", Controls.Draft:GetText()); SetStatus("Draft copied through the companion."); end);
+    Safe(function() State("clipboard_copy", Controls.Draft:GetText()); SetStatus(T("status.copied.draft")); end);
 end);
 Controls.CopyLast:RegisterCallback(Mouse.eLClick, function()
-    Safe(function() State("clipboard_copy", lastTranslation); SetStatus("Last translation copied through the companion."); end);
+    Safe(function() State("clipboard_copy", lastTranslation); SetStatus(T("status.copied.last")); end);
 end);
 Controls.ClearPrefix:RegisterCallback(Mouse.eLClick, function() selectedIcon = ""; RefreshLabels(); end);
 Controls.MessageColor:RegisterCallback(Mouse.eLClick, function() colorIndex = colorIndex % #colors + 1; RefreshLabels(); end);
@@ -1170,10 +1324,16 @@ end
 
 Controls.Test:RegisterCallback(Mouse.eLClick, function()
     Safe(function()
-        Enqueue("test", "Привет! Давай торговать.", "ru", incomingLanguages[incomingIndex], { name = "Russian test" });
-        Enqueue("test", "Привіт! Давай торгувати.", "uk", incomingLanguages[incomingIndex], { name = "Ukrainian test" });
-        Enqueue("test", "안녕하세요! 거래합시다.", "ko", incomingLanguages[incomingIndex], { name = "Korean test" });
-        SetStatus("Three local test messages queued. Nothing was sent to game chat.");
+        -- Three samples in languages other than the reader's, translated into it.
+        local queued = 0;
+        for _, sample in ipairs({ {"ru","Привет! Давай торговать."}, {"ko","안녕하세요! 거래합시다."}, {"en","Hi! Want to trade?"},
+                                  {"uk","Привіт! Давай торгувати."}, {"es","¡Hola! ¿Comerciamos?"} }) do
+            if queued < 3 and sample[1] ~= readerLanguage then
+                queued = queued + 1;
+                Enqueue("test", sample[2], sample[1], readerLanguage, { name = T("test.name", LanguageName(sample[1])) });
+            end
+        end
+        SetStatus(T("status.test"));
     end);
 end);
 
@@ -1191,7 +1351,8 @@ if not isLobby then Events.GameplaySetActivePlayer.Add(function()
         lastTranslation = "";
         StartSession();
         SetupDropdowns();
-        SetStatus("Active player changed. Pending sends and chat history cleared.");
+        ApplyFixedTexts();
+        SetStatus(T("status.player.changed"));
     end);
 end); end
 
@@ -1225,10 +1386,11 @@ Initialize = function()
     StartSession();
     initialized = true;
     SetupDropdowns();
+    ApplyFixedTexts();
     RefreshLabels();
     ResizeOverlay();
-    SetStatus(statusText);
-    AddLine("Improved Chat ready. Choose a player and language, then Enter to send.", "");
+    SetStatus(IGT_Config and "" or T("status.companion"));
+    AddLine(T("ready"), "");
     print("InGameTranslateMod initialized session " .. session);
 end
 

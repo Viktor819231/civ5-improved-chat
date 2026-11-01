@@ -9,25 +9,18 @@
       <Label ID="DragHint" Anchor="L,T" Offset="4,6" String="Drag to move" Font="TwCenMT14" />
     </Button>
     <GridButton ID="Minimize" Anchor="R,T" Offset="0,0" Size="160,28" Style="SmallButton" ToolTip="Minimize Improved Chat">
-      <Label Anchor="C,C" String="Minimize" />
+      <Label ID="MinimizeText" Anchor="C,C" String="Minimize" />
     </GridButton>
     <GridButton ID="Expand" Anchor="R,T" Offset="166,0" Size="72,28" Style="SmallButton">
       <Label ID="ExpandLabel" Anchor="C,C" String="Expand" />
     </GridButton>
     <GridButton ID="PlayerNotes" Anchor="L,T" Offset="12,2" Size="104,26" Style="SmallButton" ToolTip="Local player nicknames and notes">
-      <Label Anchor="C,C" String="Player notes" />
+      <Label ID="PlayerNotesText" Anchor="C,C" String="Player notes" />
     </GridButton>
     <Label ID="OverlayTitle" Hidden="1" String="Improved Chat" />
     <Label ID="ActionStatus" Anchor="L,T" Offset="12,366" WrapWidth="520" Font="TwCenMT14" String="Start the Windows companion." />
     <Container ID="ChatPage" Anchor="L,T" Size="550,400">
       <Label Anchor="L,T" Offset="188,52" String="Send language" Font="TwCenMT14" ID="TargetCaption" Hidden="1" />
-      <Label Anchor="L,T" Offset="364,52" String="Read language" Font="TwCenMT14" ID="IncomingCaption" Hidden="1" />
-      <PullDown ID="Incoming" Anchor="L,T" Offset="364,70" Size="170,28" Style="GenericPullDown" ScrollThreshold="230" SpaceForScroll="0" Font="TwCenMT16" Hidden="1">
-        <InstanceData Name="IGTDropdownEntry">
-          <GridButton ID="Button" Anchor="C,C" Size="210,26" Style="ZoomButton" Font="TwCenMT16" />
-        </InstanceData>
-        <Label ID="IncomingLabel" Hidden="1" String="English" />
-      </PullDown>
       <ScrollPanel ID="TranscriptScroll" Anchor="L,T" Offset="12,112" Size="510,146" Vertical="1" AutoScrollBar="1">
         <Stack ID="TranscriptStack" Anchor="L,T" StackGrowth="Bottom" />
         <ScrollBar Style="VertSlider" Anchor="R,C" AnchorSide="O,I" Length="100" />
@@ -55,16 +48,16 @@
           <Label ID="SendModeLabel" Anchor="C,C" String="Translate: OFF" />
         </GridButton>
         <GridButton ID="SendOriginal" Anchor="L,T" Offset="284,0" Size="80,30" Style="SmallButton" ToolTip="Send to the selected recipient. Enter does the same.">
-          <Label Anchor="C,C" String="Send" />
+          <Label ID="SendText" Anchor="C,C" String="Send" />
         </GridButton>
         <GridButton ID="Paste" Anchor="L,T" Offset="368,0" Size="66,30" Style="SmallButton">
-          <Label Anchor="C,C" String="Paste" />
+          <Label ID="PasteText" Anchor="C,C" String="Paste" />
         </GridButton>
         <GridButton ID="CancelSend" Anchor="L,T" Offset="368,0" Size="80,30" Style="SmallButton" Hidden="1">
-          <Label Anchor="C,C" String="Cancel" />
+          <Label ID="CancelSendText" Anchor="C,C" String="Cancel" />
         </GridButton>
         <GridButton ID="More" Anchor="R,T" Offset="0,0" Size="68,30" Style="SmallButton">
-          <Label Anchor="C,C" String="Settings" />
+          <Label ID="MoreText" Anchor="C,C" String="Settings" />
         </GridButton>
         <PullDown ID="Target" Anchor="L,T" Offset="134,0" Size="146,30" Style="GenericPullDown" ScrollThreshold="230" SpaceForScroll="0" Font="TwCenMT16">
           <InstanceData Name="IGTDropdownEntry">
@@ -89,18 +82,18 @@
       </GridButton>
     </Container>
     <Container ID="Settings" Anchor="L,T" Offset="12,110" Size="650,510" ConsumeMouseButton="1" ConsumeMouseOver="1" Hidden="1">
-      <Label Anchor="L,T" Offset="12,10" String="Improved Chat options" Font="TwCenMT20" />
+      <Label ID="SettingsTitle" Anchor="L,T" Offset="12,10" String="Improved Chat options" Font="TwCenMT20" />
       <GridButton ID="CloseSettings" Anchor="R,T" Offset="8,5" Size="70,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Close" />
+        <Label ID="CloseSettingsText" Anchor="C,C" String="Close" />
       </GridButton>
       <GridButton ID="Translate" Anchor="L,T" Offset="10,44" Size="132,28" Style="SmallButton" ToolTip="Preview a translation without sending">
-        <Label Anchor="C,C" String="Preview draft" />
+        <Label ID="TranslateText" Anchor="C,C" String="Preview draft" />
       </GridButton>
       <GridButton ID="SendTranslated" Anchor="L,T" Offset="148,44" Size="142,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Send preview" />
+        <Label ID="SendTranslatedText" Anchor="C,C" String="Send preview" />
       </GridButton>
       <GridButton ID="CopyLast" Anchor="L,T" Offset="296,44" Size="132,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Copy last" />
+        <Label ID="CopyLastText" Anchor="C,C" String="Copy last" />
       </GridButton>
       <Label ID="PrefixLabel" Anchor="L,T" Offset="12,97" String="Every message: no icon" />
       <GridButton ID="IconGold" Anchor="L,T" Offset="10,124" Size="34,28" Style="SmallButton" ToolTip="Gold">
@@ -131,30 +124,37 @@
         <Label Anchor="C,C" String="[ICON_STRENGTH]" />
       </GridButton>
       <GridButton ID="ClearPrefix" Anchor="L,T" Offset="352,124" Size="76,28" Style="SmallButton">
-        <Label Anchor="C,C" String="No icon" />
+        <Label ID="ClearPrefixText" Anchor="C,C" String="No icon" />
       </GridButton>
       <GridButton ID="Test" Anchor="L,T" Offset="10,170" Size="204,30" Style="SmallButton" ToolTip="Local samples only; no messages sent to players">
-        <Label Anchor="C,C" String="Test RU / UK / KO" />
+        <Label ID="TestText" Anchor="C,C" String="Test translation" />
       </GridButton>
       <GridButton ID="MessageColor" Anchor="L,T" Offset="220,170" Size="208,30" Style="SmallButton" ToolTip="Click to cycle outgoing message colour. Default keeps pasted colour tags.">
         <Label ID="MessageColorLabel" Anchor="C,C" String="Colour: Default" />
       </GridButton>
-      <Label Anchor="L,T" Offset="12,216" WrapWidth="410" Font="TwCenMT14" String="Translate ON: type and press Enter for each reply. Preview draft is optional. Your own messages remain visible in Improved Chat." />
+      <Label ID="SettingsHelp" Anchor="L,T" Offset="12,216" WrapWidth="410" Font="TwCenMT14" String="Translate ON: type and press Enter for each reply. Preview draft is optional. Your own messages remain visible in Improved Chat." />
       <GridButton ID="Opacity" Anchor="L,T" Offset="220,282" Size="220,30" Style="SmallButton">
         <Label ID="OpacityLabel" Anchor="C,C" String="Background: 80%" />
       </GridButton>
       <GridButton ID="Receive" Anchor="L,T" Offset="12,282" Size="182,26" Style="SmallButton">
-        <Label ID="ReceiveLabel" Anchor="C,C" String="Auto receive: ON" />
+        <Label ID="ReceiveLabel" Anchor="C,C" String="Auto-translate: ON" />
       </GridButton>
-      <Label Anchor="L,T" Offset="12,326" String="Outgoing source language" Font="TwCenMT14" ID="SourceCaption" />
+      <Label Anchor="L,T" Offset="12,326" String="I write in" Font="TwCenMT14" ID="SourceCaption" />
       <PullDown ID="Source" Anchor="L,T" Offset="12,348" Size="208,28" Style="GenericPullDown" ScrollThreshold="230" SpaceForScroll="0" Font="TwCenMT16">
         <InstanceData Name="IGTDropdownEntry">
           <GridButton ID="Button" Anchor="C,C" Size="210,26" Style="ZoomButton" Font="TwCenMT16" />
         </InstanceData>
         <Label ID="SourceLabel" Hidden="1" String="Auto" />
       </PullDown>
+      <Label Anchor="L,T" Offset="230,326" String="My language (chat and this window)" Font="TwCenMT14" ID="IncomingCaption" />
+      <PullDown ID="Incoming" Anchor="L,T" Offset="230,348" Size="208,28" Style="GenericPullDown" ScrollThreshold="230" SpaceForScroll="0" Font="TwCenMT16">
+        <InstanceData Name="IGTDropdownEntry">
+          <GridButton ID="Button" Anchor="C,C" Size="210,26" Style="ZoomButton" Font="TwCenMT16" />
+        </InstanceData>
+        <Label ID="IncomingLabel" Hidden="1" String="English" />
+      </PullDown>
       <GridButton ID="CopyDraft" Anchor="L,T" Offset="12,390" Size="82,30" Style="SmallButton">
-        <Label Anchor="C,C" String="Copy draft" />
+        <Label ID="CopyDraftText" Anchor="C,C" String="Copy draft" />
       </GridButton>
       <GridButton ID="OnlineTranslation" Anchor="L,T" Offset="12,390" Size="260,30" Style="SmallButton" Hidden="1">
         <Label ID="OnlineTranslationLabel" Anchor="C,C" String="Enable online translation" />
@@ -165,57 +165,57 @@
         <Label ID="PreviewText" Anchor="L,T" WrapWidth="495" Font="TwCenMT14" String="Choose a language and recipient. Enter sends your message." />
         <ScrollBar Style="VertSlider" Anchor="R,C" AnchorSide="O,I" Length="18" />
       </ScrollPanel>
-      <Label Anchor="L,T" Offset="454,12" String="Window size" Font="TwCenMT18" />
+      <Label ID="WindowSizeTitle" Anchor="L,T" Offset="454,12" String="Window size" Font="TwCenMT18" />
       <GridButton ID="SizeSmall" Anchor="L,T" Offset="454,44" Size="180,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Small" />
+        <Label ID="SizeSmallText" Anchor="C,C" String="Small" />
       </GridButton>
       <GridButton ID="SizeMedium" Anchor="L,T" Offset="454,78" Size="180,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Medium" />
+        <Label ID="SizeMediumText" Anchor="C,C" String="Medium" />
       </GridButton>
       <GridButton ID="SizeLarge" Anchor="L,T" Offset="454,112" Size="180,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Large" />
+        <Label ID="SizeLargeText" Anchor="C,C" String="Large" />
       </GridButton>
-      <Label Anchor="L,T" Offset="454,164" String="Width" Font="TwCenMT16" />
+      <Label ID="WidthCaption" Anchor="L,T" Offset="454,164" String="Width" Font="TwCenMT16" />
       <Slider ID="WidthSlider" Anchor="L,T" Offset="454,188" Length="180" Style="Slider" WheelSteps="10" />
-      <Label Anchor="L,T" Offset="454,230" String="Height" Font="TwCenMT16" />
+      <Label ID="HeightCaption" Anchor="L,T" Offset="454,230" String="Height" Font="TwCenMT16" />
       <Slider ID="HeightSlider" Anchor="L,T" Offset="454,254" Length="180" Style="Slider" WheelSteps="10" />
       <Label ID="WindowDimensions" Anchor="L,T" Offset="454,296" String="Current: 960 x 700" Font="TwCenMT14" />
-      <Label Anchor="L,T" Offset="454,322" WrapWidth="180" String="Fits your screen. Custom width and height apply to expanded chat." Font="TwCenMT14" />
+      <Label ID="WindowHelp" Anchor="L,T" Offset="454,322" WrapWidth="180" String="Fits your screen. Custom width and height apply to expanded chat." Font="TwCenMT14" />
     </Container>
     <Container ID="ProfilesPanel" Anchor="L,T" Offset="12,110" Size="650,450" ConsumeMouseButton="1" ConsumeMouseOver="1" Hidden="1">
-      <Label Anchor="L,T" Offset="12,10" String="Player notes / nicknames" Font="TwCenMT20" />
+      <Label ID="ProfilesTitle" Anchor="L,T" Offset="12,10" String="Player notes / nicknames" Font="TwCenMT20" />
       <GridButton ID="CloseProfiles" Anchor="R,T" Offset="8,5" Size="70,28" Style="SmallButton">
-        <Label Anchor="C,C" String="Close" />
+        <Label ID="CloseProfilesText" Anchor="C,C" String="Close" />
       </GridButton>
       <PullDown ID="ProfilePlayer" Anchor="L,T" Offset="12,44" Size="414,28" Style="GenericPullDown" ScrollThreshold="230" SpaceForScroll="0" Font="TwCenMT16">
         <InstanceData Name="IGTDropdownEntry">
           <GridButton ID="Button" Anchor="C,C" Size="400,26" Style="ZoomButton" Font="TwCenMT16" />
         </InstanceData>
       </PullDown>
-      <Label Anchor="L,T" Offset="12,82" String="Nickname in your chat window (optional)" Font="TwCenMT16" />
+      <Label ID="AliasCaption" Anchor="L,T" Offset="12,82" String="Nickname in your chat window (optional)" Font="TwCenMT16" />
       <Box Anchor="L,T" Offset="12,104" Size="414,28" Color="255,255,200,255">
         <Box Anchor="C,C" Size="412,26" Color="0,0,0,255">
           <EditBox ID="ProfileAlias" Anchor="C,C" Size="402,22" Font="TwCenMT16" EditMode="1" KeepFocus="1" MaxLength="40" />
         </Box>
       </Box>
-      <Label Anchor="L,T" Offset="12,144" String="Private note (up to 500 characters)" Font="TwCenMT16" />
+      <Label ID="NoteCaption" Anchor="L,T" Offset="12,144" String="Private note (up to 500 characters)" Font="TwCenMT16" />
       <Box Anchor="L,T" Offset="12,166" Size="414,28" Color="255,255,200,255">
         <Box Anchor="C,C" Size="412,26" Color="0,0,0,255">
           <EditBox ID="ProfileNote" Anchor="C,C" Size="402,22" Font="TwCenMT16" EditMode="1" KeepFocus="1" MaxLength="500" />
         </Box>
       </Box>
       <GridButton ID="ProfileSave" Anchor="L,T" Offset="12,206" Size="126,30" Style="SmallButton">
-        <Label Anchor="C,C" String="Save locally" />
+        <Label ID="ProfileSaveText" Anchor="C,C" String="Save locally" />
       </GridButton>
       <GridButton ID="ProfileDelete" Anchor="L,T" Offset="146,206" Size="150,30" Style="SmallButton">
-        <Label Anchor="C,C" String="Clear saved info" />
+        <Label ID="ProfileDeleteText" Anchor="C,C" String="Clear saved info" />
       </GridButton>
       <Label ID="ProfileStatus" Anchor="L,T" Offset="12,246" WrapWidth="410" Font="TwCenMT14" String="Choose a player." />
       <Label Anchor="L,T" Offset="12,300" WrapWidth="620" Font="TwCenMT14" String="Steam account lookup pending. Name matching is used when no account ID is available." ID="ProfileIdentity" />
-      <Label Anchor="L,T" Offset="12,362" WrapWidth="620" Font="TwCenMT16" String="Notes stay on this PC. Game history records dates and civilizations from games you choose to record." />
+      <Label ID="NotesPrivacy" Anchor="L,T" Offset="12,362" WrapWidth="620" Font="TwCenMT16" String="Notes stay on this PC. Game history records dates and civilizations from games you choose to record." />
     </Container>
     <Container ID="HistoryPage" Anchor="L,T" Offset="12,106" Size="900,600" Hidden="1">
-      <Label Anchor="L,T" Offset="0,0" String="Games played together" Font="TwCenMT24" />
+      <Label ID="HistoryTitle" Anchor="L,T" Offset="0,0" String="Games played together" Font="TwCenMT24" />
       <PullDown ID="HistoryPlayer" Anchor="L,T" Offset="0,38" Size="420,28" Style="GenericPullDown" ScrollThreshold="230" SpaceForScroll="0" Font="TwCenMT16">
         <InstanceData Name="IGTDropdownEntry">
           <GridButton ID="Button" Anchor="C,C" Size="500,26" Style="ZoomButton" Font="TwCenMT16" />
@@ -234,13 +234,13 @@
           </InstanceData>
         </PullDown>
         <GridButton ID="HistoryNew" Anchor="L,T" Offset="430,42" Size="150,30" Style="SmallButton">
-          <Label Anchor="C,C" String="Record new game" />
+          <Label ID="HistoryNewText" Anchor="C,C" String="Record new game" />
         </GridButton>
         <GridButton ID="HistoryResume" Anchor="L,T" Offset="586,42" Size="158,30" Style="SmallButton">
-          <Label Anchor="C,C" String="Continue selected" />
+          <Label ID="HistoryResumeText" Anchor="C,C" String="Continue selected" />
         </GridButton>
         <GridButton ID="HistoryStop" Anchor="L,T" Offset="750,42" Size="72,30" Style="SmallButton">
-          <Label Anchor="C,C" String="Stop" />
+          <Label ID="HistoryStopText" Anchor="C,C" String="Stop" />
         </GridButton>
         <Label ID="HistoryHelp" Anchor="L,T" Offset="0,82" WrapWidth="850" Font="TwCenMT14" String="After loading a save, select its previous record and Continue. Counts cover recorded games only. Dates are UTC. Lobby visits do not count as games." />
       </Container>
@@ -255,23 +255,23 @@
     </Button>
   </Instance>
   <Grid ID="ForcePanel" Anchor="C,C" Size="440,168" Style="GridBlackIndent8" ConsumeMouseButton="1" Hidden="1">
-    <Label Anchor="L,T" Offset="12,12" WrapWidth="410" Font="TwCenMT16" String="Translate this message into English. Choose its source language:" />
+    <Label ID="ForceHelp" Anchor="L,T" Offset="12,12" WrapWidth="410" Font="TwCenMT16" String="Translate this message into English. Choose its source language:" />
     <PullDown ID="ForceSource" Anchor="L,T" Offset="12,64" Size="410,28" Style="GenericPullDown" ScrollThreshold="200" SpaceForScroll="0">
       <InstanceData Name="IGTDropdownEntry">
         <GridButton ID="Button" Anchor="C,C" Size="400,26" Style="ZoomButton" Font="TwCenMT16" />
       </InstanceData>
     </PullDown>
     <GridButton ID="ForceGo" Anchor="L,T" Offset="12,116" Size="156,30" Style="SmallButton">
-      <Label Anchor="C,C" String="Translate" />
+      <Label ID="ForceGoText" Anchor="C,C" String="Translate" />
     </GridButton>
     <GridButton ID="ForceCancel" Anchor="L,T" Offset="180,116" Size="156,30" Style="SmallButton">
-      <Label Anchor="C,C" String="Cancel" />
+      <Label ID="ForceCancelText" Anchor="C,C" String="Cancel" />
     </GridButton>
   </Grid>
   <Grid ID="EmojiPanel" Anchor="L,T" Size="350,144" Style="GridBlackIndent8" ConsumeMouseButton="1" Hidden="1">
-    <Label Anchor="L,T" Offset="12,10" String="Insert a Civ icon" Font="TwCenMT18" />
+    <Label ID="EmojiTitle" Anchor="L,T" Offset="12,10" String="Insert a Civ icon" Font="TwCenMT18" />
     <GridButton ID="EmojiClose" Anchor="R,T" Offset="8,6" Size="60,26" Style="SmallButton">
-      <Label Anchor="C,C" String="Close" />
+      <Label ID="EmojiCloseText" Anchor="C,C" String="Close" />
     </GridButton>
     <GridButton ID="EmojiGold" Anchor="L,T" Offset="12,48" Size="56,34" Style="SmallButton" ToolTip="Gold">
       <Label Anchor="C,C" String="[ICON_GOLD]" />
@@ -303,13 +303,13 @@
   </Grid>
   <Grid ID="PlayerMenu" Anchor="L,T" Size="220,112" Style="GridBlackIndent8" ConsumeMouseButton="1" Hidden="1">
     <GridButton ID="PlayerMenuNote" Anchor="L,T" Offset="6,6" Size="208,28" Style="SmallButton">
-      <Label Anchor="C,C" String="Set note / nickname" />
+      <Label ID="PlayerMenuNoteText" Anchor="C,C" String="Set note / nickname" />
     </GridButton>
     <GridButton ID="PlayerMenuDetails" Anchor="L,T" Offset="6,42" Size="208,28" Style="SmallButton">
-      <Label Anchor="C,C" String="See player details" />
+      <Label ID="PlayerMenuDetailsText" Anchor="C,C" String="See player details" />
     </GridButton>
     <GridButton ID="PlayerMenuClose" Anchor="L,T" Offset="6,78" Size="208,28" Style="SmallButton">
-      <Label Anchor="C,C" String="Close" />
+      <Label ID="PlayerMenuCloseText" Anchor="C,C" String="Close" />
     </GridButton>
   </Grid>
 </Context>

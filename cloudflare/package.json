@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "deploy:beta": "node check-terms.mjs && wrangler deploy --env public_beta",
     "dev": "wrangler dev"
   },
   "devDependencies": {

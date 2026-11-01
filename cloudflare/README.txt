@@ -48,9 +48,14 @@ Reply:
 GET /v1/usage returns day, requests, inputBytes, requestsRemaining,
 inputBytesRemaining and resetAt (UTC ISO timestamp).
 
-Supported explicit source/target codes:
-en ru uk ko fr de es pl pt tr it nl sv zh ja ar
-Source detection and Civ colour/icon preservation are companion responsibilities.
+Supported source/target codes (src/languages.js):
+en ru uk be kk pl cs sk de fr es pt it nl sv da no fi hu ro bg sr hr el tr ar vi id ja ko zh
+Source may also be "auto": the service names the language it found in "source".
+Translation: Gemma 4 with a Civ V prompt, the game's official names and player
+shorthand (src/civ5-chat.js, src/civ5-slang.js); M2M100 when the model fails or
+TRANSLATION_ENGINE=m2m100. Civ [ICON_*]/[COLOR_*] tags must survive unchanged.
+The encrypted DLC route also accepts target "ru-latn" (Russian in Latin letters).
+Official names: run ../tools/build_glossary.py before deploying (not in Git).
 Only text/source/target are accepted in translation requests. Clients cannot
 specify identity, server clock, model, quota, reservations or billed-token counts.
 Individual inference input is limited to 500 UTF-8 bytes in public_beta.

@@ -64,7 +64,9 @@ npm ci
 npm test
 ```
 
-Backend tests use mocked inference and service bindings. Development modes with
+Backend tests use mocked inference and service bindings; they run without the
+generated official-name table. Before deploying, generate it from the local game
+with `.venv\Scripts\python.exe tools\build_glossary.py`. Development modes with
 remote Workers AI enabled can incur usage. Deployment is a separate operator
 step described in the [hosting guide](HOSTING.md).
 

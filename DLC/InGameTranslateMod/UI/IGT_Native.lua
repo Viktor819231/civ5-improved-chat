@@ -72,7 +72,9 @@ function IGT_Native.Open(config, query, state, session)
             return
         end
         if not job then
-            local rows=query("SELECT id,text,source,target FROM native_requests WHERE session="..quote(session).." AND status='pending' ORDER BY id LIMIT 1")
+            -- Your own messages first, then manual requests; automatic translations
+            -- of incoming chat wait, so spam never delays what you send.
+            local rows=query("SELECT id,text,source,target FROM native_requests WHERE session="..quote(session).." AND status='pending' ORDER BY CASE kind WHEN 'outgoing' THEN 0 WHEN 'auto' THEN 2 ELSE 1 END, id LIMIT 1")
             if not rows[1] then return end
             current=rows[1]
             query("UPDATE native_requests SET status='working' WHERE id="..tonumber(current.id))

@@ -53,10 +53,17 @@ end
         self.tamper=True
         self.host.draft('Hello');self.host.click('SendOriginal');self.ticks()
         self.assertEqual(len(self.lua.globals().Sent),0)
-        self.assertEqual(self.db.execute('SELECT status FROM native_requests').fetchone()[0],'error')
+        status,error=self.db.execute('SELECT status,error FROM native_requests').fetchone()
+        self.assertEqual(status,'seen');self.assertTrue(error)
         self.host.draft('Another');self.host.click('SendOriginal');self.ticks(5)
         self.host.click('OnlineTranslation');self.ticks()
         self.assertEqual(len(self.lua.globals().Sent),0)
+
+    def test_own_message_is_translated_before_automatic_incoming(self):
+        self.lua.globals().Events.GameMessageChat_handler(1,-1,'Привет всем',0)
+        self.host.draft('Hello');self.host.click('SendOriginal');self.ticks()
+        self.assertEqual(len(self.calls),2)
+        self.assertIn('Hello',self.calls[0][1]);self.assertIn('Привет всем',self.calls[1][1])
 
     def test_sequence_persists_and_timeout_never_stacks_requests(self):
         self.finish=False

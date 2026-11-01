@@ -10,9 +10,10 @@ for folder,pattern in [('companion','*.py'),('tests','*.py'),('tools','*.py'),('
     files.extend(p for p in (ROOT/folder).glob(pattern) if p.is_file())
 for name in ['InGameTranslate.lua','InGameTranslate.xml','IGT_Text.lua','IGT_History.lua','IGT_Crypto.lua','IGT_Native.lua']:
     files.append(ROOT/'DLC/InGameTranslateMod/UI'/name)
-files.extend(ROOT/'cloudflare'/n for n in ['.gitignore','package.json','package-lock.json','wrangler.jsonc','README.txt'])
+files.extend(ROOT/'cloudflare'/n for n in ['.gitignore','package.json','package-lock.json','wrangler.jsonc','README.txt','check-terms.mjs'])
+# Official names are generated from the local game (tools/build_glossary.py) and stay private.
 for folder in ['src','test']:
-    files.extend((ROOT/'cloudflare'/folder).rglob('*.js'))
+    files.extend(p for p in (ROOT/'cloudflare'/folder).rglob('*.js') if not p.name.endswith('.generated.js'))
 files.extend(ROOT/'preview'/n for n in ['index.html','README.txt'])
 files.extend(ROOT/'cloudflare/edge'/n for n in ['wrangler.jsonc','public/_worker.js','public/dlc-download.js','public/index.html'])
 files.extend((ROOT/'docs').glob('*.md'))

@@ -10,6 +10,15 @@ Access uses anonymous installation credentials; no email or mandatory Steam logi
 
 Server-side transactional reservations occur before inference. **These are request/input-byte controls, not guaranteed per-user or global dollar spending caps.** M2M100 has no documented output-token cap, and Cloudflare AI Gateway spend limits have eventual-consistency and pricing-estimation limitations. Rejected traffic, Workers/Pages requests, Durable Objects and storage can incur separate charges. See [hosting documentation](docs/HOSTING.md) for exact ceilings, retention and billing gaps.
 
+## Language model
+
+Chat text is translated by a language model that only receives fixed
+instructions, game-name hints and the message. It has no tools, accounts or data
+access. A message that tries to give the model instructions is translated like
+any other text; answers that lose Civ markup or are much longer than the
+message are discarded and translated by M2M100 instead. Every model request has
+a hard output-token limit.
+
 ## Data handling
 
 Translation sends message text to Cloudflare for inference. The service's own code intentionally persists neither chat text nor raw IP addresses. Network-limit identifiers are HMAC hashed with a server secret. Cloudflare still sees connections and inference text and applies its own processing/retention terms. Worker observability is disabled; any future Gateway logging must be configured separately.

@@ -25,6 +25,7 @@
   ],
   "vars": {
     "TRANSLATION_ENABLED": "false",
+    "TRANSLATION_ENGINE": "m2m100",
     "ADMIN_PROVISIONING_ENABLED": "false",
     "TOKEN_TTL_SECONDS": "604800",
     "ACCOUNT_DAILY_REQUESTS": "1000",
@@ -59,6 +60,7 @@
       },
       "vars": {
         "TRANSLATION_ENABLED": "true",
+        "TRANSLATION_ENGINE": "llm",
         "ADMIN_PROVISIONING_ENABLED": "false",
         "TOKEN_TTL_SECONDS": "604800",
         "ACCOUNT_DAILY_REQUESTS": "50",
@@ -88,6 +90,7 @@
       },
       "vars": {
         "TRANSLATION_ENABLED": "true",
+        "TRANSLATION_ENGINE": "llm",
         "ADMIN_PROVISIONING_ENABLED": "false",
         "REGISTRATION_ENABLED": "true",
         "IP_LIMITS_ENABLED": "true",
@@ -98,7 +101,7 @@
         "ACCOUNT_CONCURRENCY": "2",
         "GLOBAL_DAILY_REQUESTS": "10000",
         "GLOBAL_DAILY_INPUT_BYTES": "500000",
-        "GLOBAL_CONCURRENCY": "4",
+        "GLOBAL_CONCURRENCY": "8",
         "MAX_INPUT_BYTES": "500",
         "IP_REGISTRATIONS_PER_DAY": "3",
         "SUBNET_REGISTRATIONS_PER_DAY": "12",

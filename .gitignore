@@ -56,3 +56,6 @@ htmlcov/
 Thumbs.db
 
 /cloudflare/edge/public/dlc-template.zip
+
+# Official Civ V names, generated from the local game by tools/build_glossary.py.
+/cloudflare/src/civ5-terms.generated.js

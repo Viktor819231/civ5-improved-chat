@@ -34,7 +34,7 @@ export async function dlcRequest(request,env,{call,networkIdentity,digest,transl
   const claim=await call(env,'/dlc-claim',{subject:'install:'+id,seq:Number(seq)});
   if(!claim.ok)return reply('error\nRequest expired, was already used, or this download was revoked. Download a fresh copy if needed.');
   const {token}=await claim.json();
-  const m=plain.match(/^([a-z-]{2,8})\n([a-z]{2})\n([\s\S]*)$/);
+  const m=plain.match(/^([a-z-]{2,8})\n([a-z]{2}(?:-latn)?)\n([\s\S]*)$/);
   if(!m)return reply('error\nInvalid translation request.');
   try{
     if(env.TRANSLATION_ENABLED!=='true')return reply('error\nTranslation service is unavailable. Try later.');
@@ -43,7 +43,8 @@ export async function dlcRequest(request,env,{call,networkIdentity,digest,transl
       if(Date.now()>deadline)throw new Error('Translation service timed out. Try a shorter message.');
       const response=await translate(new Request('https://internal/v1/translate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'CF-Connecting-IP':request.headers.get('CF-Connecting-IP')},body:JSON.stringify({text,source,target})}),env);
       if(!response.ok)throw new Error(response.status===429?'Translation allowance or request limit reached. Try later.':'Translation service is unavailable. Try later.');
-      return (await response.json()).text;
+      const data=await response.json();
+      return {text:data.text,source:data.source};
     });
     if(utf8(result.text).length>7800)return reply('error\nTranslation is too long. Try a shorter message.');
     return reply('ok\n'+result.source+'\n'+result.text);

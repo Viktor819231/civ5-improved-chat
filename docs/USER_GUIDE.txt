@@ -69,13 +69,14 @@ optional MyMemory/Azure/custom-proxy overrides; ordinary beta use needs none.
 Close the companion to stop its online translation activity.
 
 TEST
-Click Settings, then Test RU / UK / KO. Three sample translations should appear in the
-translator panel. This test does not send any messages to other players.
+Click Settings, then Test translation. Three sample translations into your
+language should appear in the translator panel. This test does not send any messages to other players.
 The status should say Companion: connected.
 
 LATINIZED RUSSIAN (TRANSLIT)
-For Russian written with English letters, click Translate next to the message,
-choose Russian (Latin letters), then Translate. The companion converts common
+For Russian written with English letters, click Translate next to the message;
+the service usually recognises it. If not, right-click Translate, choose
+Russian (Latin letters), then Translate. The companion converts common
 translit spellings to Cyrillic locally before sending Russian to the provider.
 The original message stays available through Original. Ordinary English is
 not automatically treated as Russian. Informal spelling is ambiguous, so
@@ -84,18 +85,42 @@ This source option is also available under Settings for an outgoing draft.
 To retry an already translated line with a different source language,
 right-click its Original/English button and choose the source again.
 
+MY LANGUAGE
+Settings > My language decides which language incoming chat is translated
+into, and the language of this window (English, Russian or Korean; other
+languages show the window in English). It starts as the language Civ V runs
+in, because Civ V only shows the letters of its own language: an English game
+cannot display Cyrillic or Korean. Your choice is remembered. "I write in" and
+"Send in" are remembered too.
+
+CIV 5-AWARE TRANSLATION
+The service translates like a player: short and casual, with the official
+names the game uses in each language (Composite Bowman = Меткие лучники =
+합성궁병) and the usual shorthand (gg, DoW, NC, CBs, спс, объява, ㅋㅋ, 도국).
+Gamer shorthand everyone knows (gg, wp, afk, lol) stays as it is.
+
 CHAT
-This prototype is now ENGLISH-PERSPECTIVE only. Incoming translations always
-target English. Auto non-Latin queues other players' messages only when they
-contain non-Latin letters. Accented Latin, numbers, punctuation, emoji and
-Civ icon/colour tags do not trigger it. Your own messages do not auto-translate.
-Each incoming row has Translate. For Latin text, click it and choose the
-message's source language (French, German, Spanish, Polish, etc.). No language
-is silently guessed for that manual operation. Once translated, Original /
-English switches the displayed text without another API request. Retry after
-a failed request lets you specify the source language. Auto can be OFF while
-manual per-message translation remains available. Latin-script foreign text
-requires that manual action; this is deliberate user filtering, not detection.
+Auto-translate queues other players' messages written in another alphabet than
+your language: for an English reader, messages with non-Latin letters; for a
+Russian reader, Korean, Chinese, Japanese and other non-Cyrillic alphabets; for
+a Korean reader, everything without Hangul that is not in Latin letters.
+Messages in Latin letters (English, Spanish, translit Russian...) are never
+translated automatically, whatever your language: click Translate on the ones
+you want. Numbers, emoji and Civ icon/colour tags alone do not trigger it. Your own messages do not
+auto-translate. Each incoming row has Translate: click it and the service
+recognises the language (Spanish, German, translit Russian...); right-click to
+choose the language yourself. Once translated, Original / your language
+switches the displayed text without another request. Auto can be OFF while
+manual per-message translation remains available.
+
+SPAM PROTECTION
+Automatic translation is rationed so a flood of chat cannot use up your daily
+allowance or delay your own messages: each player gets 4 automatic
+translations at once, then one every 6 seconds; at most 6 wait at a time; a
+line that repeats is translated once and shown again from memory; your own
+outgoing messages are translated before incoming chat; reaching the daily
+limit pauses automatic translation for 5 minutes. Skipped messages keep their
+Translate button. Only the newest 100 chat rows are kept on screen.
 
 Incoming translations appear in a compact overlay. Normal chat remains
 intact; you can minimize it using its own chat button. Improved Chat becomes
@@ -114,8 +139,9 @@ Send language sits beside Translate at the bottom. Outgoing Source language,
 copy-draft, connection status and draft preview are in Settings. The fixed
 English incoming destination is hidden. Cancel replaces Paste only while
 messages are queued; duplicate notes controls are hidden in expanded mode.
-Choose English, Russian, Ukrainian or Korean; Source also offers Auto detect.
-The incoming destination displays fixed English. New messages appear immediately;
+Send in offers 30 languages, including Russian (Latin letters), which every
+Civ V font can show. Players see Cyrillic, Korean or Chinese only when their
+game runs in such a language. Source also offers Auto detect. New messages appear immediately;
 their translations replace the matching overlay row when ready.
 Your own normal-chat messages also appear. Translated replies sent from the
 overlay show your readable original draft with the destination language.
@@ -210,9 +236,9 @@ The public beta allowance and service availability are described above.
 If you explicitly select MyMemory in Advanced settings, its anonymous
 allowance is 5,000 characters/day; a valid optional
 contact email increases the advertised allowance to 50,000 characters/day.
-Auto source detection is a basic RU/UK/KO/English heuristic. Short Ukrainian
-without distinctive letters may be mistaken for Russian. Choose Ukrainian
-explicitly when needed. English is assumed for Latin-script messages.
+Auto detection: the service recognises the message language. Short Ukrainian
+without distinctive letters may be read as Russian; choose Ukrainian
+explicitly when needed.
 Source language applies to outgoing drafts. Incoming auto uses its script
 heuristic; a per-message manual operation can explicitly choose the source.
 Missing Cyrillic/Korean font glyphs may still affect originals/previews;
@@ -230,7 +256,13 @@ This cannot identify every base-file replacement/custom DLL or modpack that
 reuses official IDs, and cannot prevent another UI from failing before Lua.
 Adds child contexts to InGame.xml and StagingRoom.xml; does not replace
 EUI's DiploCorner or normal chat callbacks. Other mods replacing these
-two XML layouts can conflict. Windows companion only.
+two XML layouts can conflict.
+
+KEK MOD
+KEK Mod is allowed. Copy InGameTranslateMod into Assets\DLC the same way as
+for the normal game. No extra step. The chat is added on the in-game screen,
+which KEK does not replace. KEK supplies its own lobby screen, so the lobby
+copy of that screen stays KEK's.
 Lua/SQLite automated tests pass; live lobby rendering and multiplayer
 delivery need an in-game test on your setup.
 

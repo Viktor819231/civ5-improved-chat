@@ -76,7 +76,8 @@ test('limits measure UTF-8 bytes, not JS string length',async()=>{
 test('oversized input and unsupported language never call the model',async()=>{
   const s=setup({MAX_INPUT_BYTES:'4'});const a=await s.issue();
   assert.equal((await s.translate(a)).status,413);
-  assert.equal((await s.request('/v1/translate',{token:a,data:{text:'hi',source:'auto',target:'en'}})).status,400);
+  assert.equal((await s.request('/v1/translate',{token:a,data:{text:'hi',source:'xx',target:'en'}})).status,400);
+  assert.equal((await s.request('/v1/translate',{token:a,data:{text:'hi',source:'en',target:'auto'}})).status,400);
   assert.equal(s.calls(),0);
 });
 test('service switch disables translation',async()=>{
@@ -141,12 +142,14 @@ test('reissuing an installation token shares quota and revocation preserves usag
   assert.equal((await s.translate(a)).status,401);assert.equal((await s.translate(b)).status,401);
   const c=await issue();assert.equal((await s.translate(c)).status,429);
 });
-test('manual source dropdown languages are accepted but auto remains rejected',async()=>{
-  const s=setup(),token=await s.issue();
-  for(const source of ['fr','de','es','pl','pt','tr','it','nl','sv','zh','ja','ar']){
-    assert.equal((await s.request('/v1/translate',{token,data:{text:'sample',source,target:'en'}})).status,200);
+test('every listed language works both ways and auto reports a real source language',async()=>{
+  const s=setup({ACCOUNT_REQUESTS_PER_MINUTE:'500'}),token=await s.issue();
+  for(const code of ['fr','de','es','pl','pt','tr','it','nl','sv','zh','ja','ar','kk','be','cs','hu','ro','fi','da','no','vi','id','bg','sr','hr','el','sk']){
+    assert.equal((await s.request('/v1/translate',{token,data:{text:'sample',source:code,target:'en'}})).status,200);
+    assert.equal((await s.request('/v1/translate',{token,data:{text:'sample',source:'en',target:code}})).status,200);
   }
-  assert.equal((await s.request('/v1/translate',{token,data:{text:'sample',source:'auto',target:'en'}})).status,400);
+  const auto=await(await s.request('/v1/translate',{token,data:{text:'안녕',source:'auto',target:'en'}})).json();
+  assert.equal(auto.source,'ko');
 });
 
 const enrollment=n=>({version:1,installationId:'12345678-1234-4123-8123-'+n.toString(16).padStart(12,'0'),registrationSecret:'b'.repeat(64)});

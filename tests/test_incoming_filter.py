@@ -39,14 +39,20 @@ class IncomingFilterTests(unittest.TestCase):
         self.assertIn('Hello',row.Message.text)
         self.assertEqual(self.count(),1)
 
-    def test_latin_force_translation_uses_explicit_per_message_language(self):
-        row=self.chat('bonjour mon ami')
+    def test_latin_click_lets_service_detect_and_right_click_forces_language(self):
+        row=self.chat('hola amigo')
         row.TranslateButton.callback()
+        self.assertTrue(self.lua.globals().Controls.ForcePanel.hidden)
+        request=self.db.execute('SELECT kind,source,target,text FROM requests').fetchone()
+        self.assertEqual(tuple(request),('incoming','auto','en','hola amigo'))
+        self.h.complete('hi friend','es')
+        self.assertIn('(TR es>en) P1: hi friend',row.Message.text)
+        row=self.chat('bonjour mon ami')
+        row.TranslateButton.rightclick()
         self.assertFalse(self.lua.globals().Controls.ForcePanel.hidden)
-        self.assertEqual(self.count(),0)
         self.h.select('ForceSource',5)  # French
         self.h.click('ForceGo')
-        request=self.db.execute('SELECT source,target,text FROM requests').fetchone()
+        request=self.db.execute('SELECT source,target,text FROM requests ORDER BY id DESC').fetchone()
         self.assertEqual(tuple(request),('fr','en','bonjour mon ami'))
         self.h.complete('Hello my friend','fr')
         self.assertIn('Hello my friend',row.Message.text)
@@ -63,7 +69,7 @@ class IncomingFilterTests(unittest.TestCase):
         text='a kstati mogu vot tak pisat'
         row=self.chat(text)
         self.assertEqual(self.count(),0)
-        row.TranslateButton.callback()
+        row.TranslateButton.rightclick()
         self.h.select('ForceSource',2)
         self.h.click('ForceGo')
         request=self.db.execute('SELECT source,target,text FROM requests').fetchone()
@@ -76,7 +82,7 @@ class IncomingFilterTests(unittest.TestCase):
 
     def test_translated_message_can_be_retried_as_latinized_russian(self):
         row=self.chat('privet drug')
-        row.TranslateButton.callback();self.h.select('ForceSource',1);self.h.click('ForceGo')
+        row.TranslateButton.callback()
         self.h.complete('Bad translation','ru')
         row.TranslateButton.rightclick()
         self.assertFalse(self.lua.globals().Controls.ForcePanel.hidden)

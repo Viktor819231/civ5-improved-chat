@@ -1,10 +1,15 @@
 // Companion translation preprocessing, performed only after authentication.
-const TOKEN=/(\[ICON_[A-Z0-9_]+\]|\[COLOR_[A-Z0-9_]+\]|\[ENDCOLOR\]|\[TR[^\]\r\n]{0,32}\])/g;
+import {LANGUAGES,LATIN_RUSSIAN} from './languages.js';
+import {TAG,guessLanguage} from './civ5-chat.js';
+// Earlier translation markers are kept verbatim. Civ icon/colour tags stay
+// inside the text so the model sees whole sentences ("5 [ICON_GOLD] per turn").
+const MARKER=/(\[TR[^\]\r\n]{0,32}\])/;
+const TAG_SPLIT=/(\[(?:ICON_[A-Z0-9_]+|COLOR_[A-Z0-9_]+|ENDCOLOR)\])/;
 const letter=/\p{L}/u;
-const supported=new Set('en ru uk ko fr de es pl pt tr it nl sv zh ja ar'.split(' '));
+const hasLetters=s=>letter.test(s.replace(TAG,''));
 const pairs=[['shch','щ'],['sch','щ'],['shh','щ'],['zh','ж'],['kh','х'],['ts','ц'],['ch','ч'],['sh','ш'],['yu','ю'],['ju','ю'],['ya','я'],['ja','я'],['yo','ё'],['jo','ё'],['ye','е'],['eh','э']];
 const letters=Object.fromEntries([...'abcdefghijklmnopqrstuvwxyz'].map((x,i)=>[x,[...'абцдефгхийклмнопкрстуввхыз'][i]]));
-export function russianFromLatin(text) {
+function russianWords(text) {
   return text.replace(/https?:\/\/[^\s]+|www\.[^\s]+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:['`][A-Za-z]+)*['`]?/gi,value=>{
     if(value.includes('://')||value.toLowerCase().startsWith('www.')||value.includes('@'))return value;
     const lower=value.toLowerCase();let out='';
@@ -18,17 +23,23 @@ export function russianFromLatin(text) {
     return out;
   });
 }
+/** Russian typed in Latin letters ("privet") to Cyrillic; markup tags untouched. */
+export function russianFromLatin(text) {
+  return text.split(TAG_SPLIT).map((part,i)=>i%2?part:russianWords(part)).join('');
+}
+// The way players write Russian when their game shows no Cyrillic.
+const LATIN={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+/** Russian in Cyrillic to the Latin letters every Civ V font can show. */
+export function latinFromRussian(text) {
+  return [...text].map(c=>{
+    const lower=c.toLowerCase(),value=LATIN[lower];
+    if(value===undefined)return c;
+    return c===lower||!value?value:value[0].toUpperCase()+value.slice(1);
+  }).join('');
+}
+/** A language code for non-Latin letters; 'auto' lets the model recognise Latin-script languages. */
 export function detectSource(text) {
-  const plain=text.replace(TOKEN,''),chars=[...plain].filter(c=>letter.test(c));
-  const korean=chars.filter(c=>/\p{Script=Hangul}/u.test(c)).length;
-  const cyrillic=chars.filter(c=>/\p{Script=Cyrillic}/u.test(c));
-  if(korean&&korean>=cyrillic.length)return 'ko';
-  if(cyrillic.length){
-    if(cyrillic.some(c=>!'абвгґдеєжзиіїйклмнопрстуфхцчшщъыьэюяё'.includes(c.toLowerCase())))throw new Error('Choose the source language for this Cyrillic script.');
-    return /[іїєґ]/i.test(plain)?'uk':'ru';
-  }
-  if(chars.every(c=>/\p{Script=Latin}/u.test(c)))return 'en';
-  throw new Error('Choose a source language. Auto supports English, Russian, Ukrainian and Korean.');
+  return guessLanguage(text)??'auto';
 }
 export function splitUtf8(text,limit=500) {
   const chunks=[];const encoder=new TextEncoder();
@@ -39,21 +50,30 @@ export function splitUtf8(text,limit=500) {
   }
   return chunks;
 }
+/**
+ * Translate a whole chat message in pieces of at most 500 bytes. `translate`
+ * returns {text, source} (or just the text). The result's source is the
+ * language the service found, so the player sees "(TR es>en)".
+ */
 export async function translateMessage(text,source,target,translate) {
   if(typeof text!=='string'||new TextEncoder().encode(text).length>6000||!text.trim())throw new Error('Shorten the message to 6,000 UTF-8 bytes.');
-  const resolved=source==='ru-latn'?'ru':source==='auto'?detectSource(text):source;
-  if(!supported.has(resolved)||!supported.has(target))throw new Error('Choose supported source and target languages.');
-  const output=[];
-  for(let part of text.split(TOKEN)){
-    TOKEN.lastIndex=0;
-    if(TOKEN.test(part)||!letter.test(part)){output.push(part);continue;}
-    if(source==='ru-latn')part=russianFromLatin(part);
-    if(resolved===target){output.push(part);continue;}
+  const to=target===LATIN_RUSSIAN?'ru':target;
+  const from=source===LATIN_RUSSIAN?'ru':source==='auto'?detectSource(text):source;
+  if((from!=='auto'&&!LANGUAGES.has(from))||!LANGUAGES.has(to))throw new Error('Choose supported source and target languages.');
+  const output=[];let detected=from==='auto'?null:from;
+  for(let part of text.split(MARKER)){
+    if(MARKER.test(part)||!hasLetters(part)){output.push(part);continue;}
+    if(source===LATIN_RUSSIAN)part=russianFromLatin(part);
+    if(from===to){output.push(part);continue;}
     for(const chunk of splitUtf8(part)){
       const core=chunk.trim();
-      if(!letter.test(core)){output.push(chunk);continue;}
-      output.push(chunk.slice(0,chunk.length-chunk.trimStart().length)+await translate(core,resolved,target)+chunk.slice(chunk.trimEnd().length));
+      if(!hasLetters(core)){output.push(chunk);continue;}
+      const result=await translate(core,from,to);
+      const value=typeof result==='string'?{text:result,source:from}:result;
+      if(!detected&&value.source&&value.source!=='auto')detected=value.source;
+      output.push(chunk.slice(0,chunk.length-chunk.trimStart().length)+value.text+chunk.slice(chunk.trimEnd().length));
     }
   }
-  return {text:output.join(''),source:resolved};
+  const joined=output.join('');
+  return {text:target===LATIN_RUSSIAN?latinFromRussian(joined):joined,source:detected??(from==='auto'?'en':from)};
 }

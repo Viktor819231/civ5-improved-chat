@@ -1,3 +1,28 @@
+# Improved Chat 0.11.0 beta
+
+- Civ 5-aware translation: a language model (Gemma 4 on Cloudflare Workers AI)
+  translates chat as players talk, uses the game's official names in each
+  language (generated from the game's own localisation) and understands player
+  shorthand (gg, DoW, NC, CBs, спс, объява, ㅋㅋ, 도국). M2M100 remains the
+  automatic fallback. Every request has a hard output limit.
+- My language: incoming chat is translated into the language Civ V runs in
+  (English, Russian, Korean, German, French, Spanish, Italian, Polish, Japanese
+  or Chinese) and the overlay is shown in English, Russian or Korean. Change it
+  in Settings; the choice is remembered.
+- 30 send languages, including Russian (Latin letters) for players whose game
+  cannot show Cyrillic. Messages in Latin letters are never auto-translated,
+  for any reader language; when you click Translate the service recognises
+  the language (Spanish, German, translit Russian...);
+  right-click still lets you choose the language.
+- Spam protection: automatic translations are rationed per player (4 at once,
+  then one every 6 seconds) and at most 6 wait at a time; a repeated line is
+  translated once; your own messages are translated first; reaching the daily
+  limit pauses automatic translation for 5 minutes. Finished requests are read
+  once and old ones are cleared, so a long or spammy game does not slow the UI.
+
+Upgrade: download again from the website and replace InGameTranslateMod with
+Civ V closed. Notes and history are kept.
+
 # Improved Chat 0.10.0 beta
 
 Download: https://civ5-improved-chat-api.pages.dev/
@@ -29,3 +54,5 @@ experimental beta, not audited secure messaging.
 
 GitHub source archives are for development. Use the website for an install-ready
 personalized ZIP; no installation credentials are distributed in this repository.
+
+2026-10-31: Public download page and ZIP filename now use Civ5TranslatorMod (0.10.0 beta). Existing in-game Improved Chat labels and InGameTranslateMod installation paths remain compatible. Rebuilt and published the current keyless template; service binding and backend secrets unchanged. 151 Python/UI and 41 backend tests passed.
