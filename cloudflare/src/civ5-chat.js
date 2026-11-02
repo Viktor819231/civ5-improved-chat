@@ -31,7 +31,9 @@ export function guessLanguage(text) {
   if(script==='cyrillic'){
     if(/[іїєґ]/i.test(text))return 'uk';
     if(/[ў]/i.test(text))return 'be';
-    if(/[әғқңөұүһ]/i.test(text))return 'kk';
+    // Kazakh and Mongolian share ө and ү; only Kazakh has the other extra letters.
+    if(/[әғқңұһ]/i.test(text))return 'kk';
+    if(/[өү]/i.test(text))return 'mn';
     return 'ru';
   }
   return {hangul:'ko',kana:'ja',han:'zh',greek:'el',arabic:'ar'}[script]??null;

@@ -45,6 +45,8 @@ test('scripts and local language guesses',()=>{
   assert.equal(scriptOf('ㅋㅋ'),'hangul');
   assert.equal(scriptOf('東京へ行く'),'kana');
   assert.equal(guessLanguage('Сәлем қалайсың'),'kk');
+  assert.equal(guessLanguage('Сайн байна уу, энх тайван үү?'),'mn');
+  assert.equal(guessLanguage('Қалайсың? Өте жақсы'),'kk');
   assert.equal(guessLanguage('Hello'),null);
 });
 

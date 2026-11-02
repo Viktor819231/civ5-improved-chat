@@ -1,3 +1,11 @@
+# Improved Chat 0.11.2 beta
+
+- Mongolian: choose it as My language to read incoming chat in Mongolian, or
+  under Send in and Translate. Civ V has no Mongolian version, so the window
+  shows in Russian when the game runs in Russian (Mongolian letters need the
+  game's Russian font) and in English otherwise.
+- Mongolian messages are no longer mistaken for Kazakh.
+
 # Improved Chat 0.11.1 beta
 
 - The overlay window speaks all ten My language choices: English, Russian,

@@ -790,7 +790,7 @@ end
 IGT_Text.UI = {}
 IGT_Text.UI.en = {
     ["lang.auto"]="Auto detect", ["lang.en"]="English", ["lang.ru"]="Russian", ["lang.ru-latn"]="Russian (Latin letters)",
-    ["lang.uk"]="Ukrainian", ["lang.be"]="Belarusian", ["lang.kk"]="Kazakh", ["lang.pl"]="Polish", ["lang.cs"]="Czech",
+    ["lang.uk"]="Ukrainian", ["lang.be"]="Belarusian", ["lang.kk"]="Kazakh", ["lang.mn"]="Mongolian", ["lang.pl"]="Polish", ["lang.cs"]="Czech",
     ["lang.sk"]="Slovak", ["lang.de"]="German", ["lang.fr"]="French", ["lang.es"]="Spanish", ["lang.pt"]="Portuguese",
     ["lang.it"]="Italian", ["lang.nl"]="Dutch", ["lang.sv"]="Swedish", ["lang.da"]="Danish", ["lang.no"]="Norwegian",
     ["lang.fi"]="Finnish", ["lang.hu"]="Hungarian", ["lang.ro"]="Romanian", ["lang.bg"]="Bulgarian", ["lang.sr"]="Serbian",
@@ -881,6 +881,7 @@ IGT_Text.UI.en = {
     ["status.player.changed"]="Active player changed. Pending sends and chat history cleared.",
     ["status.language"]="My language: %1.",
     ["status.language.font"]="My language: %1. Civ V shows %1 letters only when the game itself runs in %1, so this window stays in English.",
+    ["status.language.fallback"]="My language: %1. Civ V shows %1 letters only when the game itself runs in %2, so this window stays in English.",
     ["status.auto.limited"]="Many messages from %1: automatic translation skipped. Click Translate on a message.",
     ["status.auto.busy"]="Many messages at once: automatic translation skipped. Click Translate on a message.",
     ["status.auto.paused"]="Translation limit reached: automatic translation paused for 5 minutes.",
@@ -921,7 +922,7 @@ IGT_Text.UI.en = {
 }
 IGT_Text.UI.ru = {
     ["lang.auto"]="Автоопределение", ["lang.en"]="Английский", ["lang.ru"]="Русский", ["lang.ru-latn"]="Русский (латиницей)",
-    ["lang.uk"]="Украинский", ["lang.be"]="Белорусский", ["lang.kk"]="Казахский", ["lang.pl"]="Польский", ["lang.cs"]="Чешский",
+    ["lang.uk"]="Украинский", ["lang.be"]="Белорусский", ["lang.kk"]="Казахский", ["lang.mn"]="Монгольский", ["lang.pl"]="Польский", ["lang.cs"]="Чешский",
     ["lang.sk"]="Словацкий", ["lang.de"]="Немецкий", ["lang.fr"]="Французский", ["lang.es"]="Испанский",
     ["lang.pt"]="Португальский", ["lang.it"]="Итальянский", ["lang.nl"]="Нидерландский", ["lang.sv"]="Шведский",
     ["lang.da"]="Датский", ["lang.no"]="Норвежский", ["lang.fi"]="Финский", ["lang.hu"]="Венгерский", ["lang.ro"]="Румынский",
@@ -1008,6 +1009,7 @@ IGT_Text.UI.ru = {
     ["status.player.changed"]="Активный игрок сменился. Очередь отправки и чат очищены.",
     ["status.language"]="Мой язык: %1.",
     ["status.language.font"]="Мой язык: %1. Civ V показывает эти буквы, только если сама игра на этом языке, поэтому окно остаётся на английском.",
+    ["status.language.fallback"]="Мой язык: %1. Civ V показывает эти буквы, только если сама игра на языке: %2, поэтому окно остаётся на английском.",
     ["status.auto.limited"]="Много сообщений от %1: автоперевод пропущен. Нажмите «Перевести» у сообщения.",
     ["status.auto.busy"]="Слишком много сообщений сразу: автоперевод пропущен. Нажмите «Перевести» у сообщения.",
     ["status.auto.paused"]="Лимит перевода исчерпан: автоперевод приостановлен на 5 минут.",
@@ -1046,7 +1048,7 @@ IGT_Text.UI.ru = {
 }
 IGT_Text.UI.ko = {
     ["lang.auto"]="자동 감지", ["lang.en"]="영어", ["lang.ru"]="러시아어", ["lang.ru-latn"]="러시아어 (로마자)",
-    ["lang.uk"]="우크라이나어", ["lang.be"]="벨라루스어", ["lang.kk"]="카자흐어", ["lang.pl"]="폴란드어", ["lang.cs"]="체코어",
+    ["lang.uk"]="우크라이나어", ["lang.be"]="벨라루스어", ["lang.kk"]="카자흐어", ["lang.mn"]="몽골어", ["lang.pl"]="폴란드어", ["lang.cs"]="체코어",
     ["lang.sk"]="슬로바키아어", ["lang.de"]="독일어", ["lang.fr"]="프랑스어", ["lang.es"]="스페인어", ["lang.pt"]="포르투갈어",
     ["lang.it"]="이탈리아어", ["lang.nl"]="네덜란드어", ["lang.sv"]="스웨덴어", ["lang.da"]="덴마크어", ["lang.no"]="노르웨이어",
     ["lang.fi"]="핀란드어", ["lang.hu"]="헝가리어", ["lang.ro"]="루마니아어", ["lang.bg"]="불가리아어", ["lang.sr"]="세르비아어",
@@ -1132,6 +1134,7 @@ IGT_Text.UI.ko = {
     ["status.player.changed"]="플레이어가 바뀌어 보내기 대기열과 채팅 기록을 지웠습니다.",
     ["status.language"]="내 언어: %1.",
     ["status.language.font"]="내 언어: %1. Civ V는 게임 자체가 이 언어일 때만 이 글자를 표시할 수 있어서 이 창은 영어로 유지됩니다.",
+    ["status.language.fallback"]="내 언어: %1. Civ V는 게임 자체가 %2일 때만 이 글자를 표시할 수 있어서 이 창은 영어로 유지됩니다.",
     ["status.auto.limited"]="%1의 메시지가 너무 많아 자동 번역을 건너뛰었습니다. 메시지의 번역 버튼을 누르세요.",
     ["status.auto.busy"]="메시지가 한꺼번에 너무 많아 자동 번역을 건너뛰었습니다. 메시지의 번역 버튼을 누르세요.",
     ["status.auto.paused"]="번역 한도에 도달해 자동 번역을 5분간 멈춥니다.",
@@ -1170,7 +1173,7 @@ IGT_Text.UI.ko = {
 }
 IGT_Text.UI.de = {
     ["lang.auto"]="Automatisch erkennen", ["lang.en"]="Englisch", ["lang.ru"]="Russisch", ["lang.ru-latn"]="Russisch (Lateinschrift)",
-    ["lang.uk"]="Ukrainisch", ["lang.be"]="Belarussisch", ["lang.kk"]="Kasachisch", ["lang.pl"]="Polnisch", ["lang.cs"]="Tschechisch",
+    ["lang.uk"]="Ukrainisch", ["lang.be"]="Belarussisch", ["lang.kk"]="Kasachisch", ["lang.mn"]="Mongolisch", ["lang.pl"]="Polnisch", ["lang.cs"]="Tschechisch",
     ["lang.sk"]="Slowakisch", ["lang.de"]="Deutsch", ["lang.fr"]="Französisch", ["lang.es"]="Spanisch", ["lang.pt"]="Portugiesisch",
     ["lang.it"]="Italienisch", ["lang.nl"]="Niederländisch", ["lang.sv"]="Schwedisch", ["lang.da"]="Dänisch", ["lang.no"]="Norwegisch",
     ["lang.fi"]="Finnisch", ["lang.hu"]="Ungarisch", ["lang.ro"]="Rumänisch", ["lang.bg"]="Bulgarisch", ["lang.sr"]="Serbisch",
@@ -1261,6 +1264,7 @@ IGT_Text.UI.de = {
     ["status.player.changed"]="Aktiver Spieler gewechselt. Ausstehende Sendungen und Chatverlauf gelöscht.",
     ["status.language"]="Meine Sprache: %1.",
     ["status.language.font"]="Meine Sprache: %1. Civ V zeigt die Schrift für %1 nur an, wenn das Spiel selbst auf %1 läuft, daher bleibt dieses Fenster auf Englisch.",
+    ["status.language.fallback"]="Meine Sprache: %1. Civ V zeigt die Schrift für %1 nur an, wenn das Spiel selbst auf %2 läuft, daher bleibt dieses Fenster auf Englisch.",
     ["status.auto.limited"]="Viele Nachrichten von %1: automatische Übersetzung übersprungen. Klickt bei einer Nachricht auf Übersetzen.",
     ["status.auto.busy"]="Viele Nachrichten auf einmal: automatische Übersetzung übersprungen. Klickt bei einer Nachricht auf Übersetzen.",
     ["status.auto.paused"]="Übersetzungslimit erreicht: automatische Übersetzung für 5 Minuten pausiert.",
@@ -1301,7 +1305,7 @@ IGT_Text.UI.de = {
 }
 IGT_Text.UI.fr = {
     ["lang.auto"]="Détection automatique", ["lang.en"]="Anglais", ["lang.ru"]="Russe", ["lang.ru-latn"]="Russe (lettres latines)",
-    ["lang.uk"]="Ukrainien", ["lang.be"]="Biélorusse", ["lang.kk"]="Kazakh", ["lang.pl"]="Polonais", ["lang.cs"]="Tchèque",
+    ["lang.uk"]="Ukrainien", ["lang.be"]="Biélorusse", ["lang.kk"]="Kazakh", ["lang.mn"]="Mongol", ["lang.pl"]="Polonais", ["lang.cs"]="Tchèque",
     ["lang.sk"]="Slovaque", ["lang.de"]="Allemand", ["lang.fr"]="Français", ["lang.es"]="Espagnol", ["lang.pt"]="Portugais",
     ["lang.it"]="Italien", ["lang.nl"]="Néerlandais", ["lang.sv"]="Suédois", ["lang.da"]="Danois", ["lang.no"]="Norvégien",
     ["lang.fi"]="Finnois", ["lang.hu"]="Hongrois", ["lang.ro"]="Roumain", ["lang.bg"]="Bulgare", ["lang.sr"]="Serbe",
@@ -1392,6 +1396,7 @@ IGT_Text.UI.fr = {
     ["status.player.changed"]="Le joueur actif a changé. Envois en attente et historique de discussion effacés.",
     ["status.language"]="Ma langue : %1.",
     ["status.language.font"]="Ma langue : %1. Civ V n'affiche les lettres de cette langue (%1) que si le jeu lui-même est réglé sur %1 ; cette fenêtre reste donc en anglais.",
+    ["status.language.fallback"]="Ma langue : %1. Civ V n'affiche les lettres de cette langue (%1) que si le jeu lui-même est réglé sur %2 ; cette fenêtre reste donc en anglais.",
     ["status.auto.limited"]="Beaucoup de messages de %1 : traduction automatique ignorée. Cliquez sur Traduire sur un message.",
     ["status.auto.busy"]="Beaucoup de messages à la fois : traduction automatique ignorée. Cliquez sur Traduire sur un message.",
     ["status.auto.paused"]="Limite de traduction atteinte : traduction automatique suspendue pendant 5 minutes.",
@@ -1432,7 +1437,7 @@ IGT_Text.UI.fr = {
 }
 IGT_Text.UI.es = {
     ["lang.auto"]="Detectar automáticamente", ["lang.en"]="Inglés", ["lang.ru"]="Ruso", ["lang.ru-latn"]="Ruso (letras latinas)",
-    ["lang.uk"]="Ucraniano", ["lang.be"]="Bielorruso", ["lang.kk"]="Kazajo", ["lang.pl"]="Polaco", ["lang.cs"]="Checo",
+    ["lang.uk"]="Ucraniano", ["lang.be"]="Bielorruso", ["lang.kk"]="Kazajo", ["lang.mn"]="Mongol", ["lang.pl"]="Polaco", ["lang.cs"]="Checo",
     ["lang.sk"]="Eslovaco", ["lang.de"]="Alemán", ["lang.fr"]="Francés", ["lang.es"]="Español", ["lang.pt"]="Portugués",
     ["lang.it"]="Italiano", ["lang.nl"]="Neerlandés", ["lang.sv"]="Sueco", ["lang.da"]="Danés", ["lang.no"]="Noruego",
     ["lang.fi"]="Finés", ["lang.hu"]="Húngaro", ["lang.ro"]="Rumano", ["lang.bg"]="Búlgaro", ["lang.sr"]="Serbio",
@@ -1523,6 +1528,7 @@ IGT_Text.UI.es = {
     ["status.player.changed"]="El jugador activo ha cambiado. Envíos pendientes e historial del chat borrados.",
     ["status.language"]="Mi idioma: %1.",
     ["status.language.font"]="Mi idioma: %1. Civ V solo muestra las letras de %1 cuando el propio juego está en %1, así que esta ventana sigue en inglés.",
+    ["status.language.fallback"]="Mi idioma: %1. Civ V solo muestra las letras de %1 cuando el propio juego está en %2, así que esta ventana sigue en inglés.",
     ["status.auto.limited"]="Muchos mensajes de %1: traducción automática omitida. Haz clic en «Traducir» en un mensaje.",
     ["status.auto.busy"]="Demasiados mensajes a la vez: traducción automática omitida. Haz clic en «Traducir» en un mensaje.",
     ["status.auto.paused"]="Límite de traducción alcanzado: traducción automática en pausa durante 5 minutos.",
@@ -1563,7 +1569,7 @@ IGT_Text.UI.es = {
 }
 IGT_Text.UI.it = {
     ["lang.auto"]="Rilevamento automatico", ["lang.en"]="Inglese", ["lang.ru"]="Russo", ["lang.ru-latn"]="Russo (lettere latine)",
-    ["lang.uk"]="Ucraino", ["lang.be"]="Bielorusso", ["lang.kk"]="Kazako", ["lang.pl"]="Polacco", ["lang.cs"]="Ceco",
+    ["lang.uk"]="Ucraino", ["lang.be"]="Bielorusso", ["lang.kk"]="Kazako", ["lang.mn"]="Mongolo", ["lang.pl"]="Polacco", ["lang.cs"]="Ceco",
     ["lang.sk"]="Slovacco", ["lang.de"]="Tedesco", ["lang.fr"]="Francese", ["lang.es"]="Spagnolo", ["lang.pt"]="Portoghese",
     ["lang.it"]="Italiano", ["lang.nl"]="Olandese", ["lang.sv"]="Svedese", ["lang.da"]="Danese", ["lang.no"]="Norvegese",
     ["lang.fi"]="Finlandese", ["lang.hu"]="Ungherese", ["lang.ro"]="Rumeno", ["lang.bg"]="Bulgaro", ["lang.sr"]="Serbo",
@@ -1654,6 +1660,7 @@ IGT_Text.UI.it = {
     ["status.player.changed"]="Il giocatore attivo è cambiato. Invii in sospeso e storico della chat cancellati.",
     ["status.language"]="La mia lingua: %1.",
     ["status.language.font"]="La mia lingua: %1. Civ V mostra le lettere della lingua %1 solo se il gioco stesso è in %1, quindi questa finestra resta in inglese.",
+    ["status.language.fallback"]="La mia lingua: %1. Civ V mostra le lettere della lingua %1 solo se il gioco stesso è in %2, quindi questa finestra resta in inglese.",
     ["status.auto.limited"]="Molti messaggi da %1: traduzione automatica saltata. Clicca «Traduci» su un messaggio.",
     ["status.auto.busy"]="Molti messaggi tutti insieme: traduzione automatica saltata. Clicca «Traduci» su un messaggio.",
     ["status.auto.paused"]="Limite di traduzione raggiunto: traduzione automatica sospesa per 5 minuti.",
@@ -1694,7 +1701,7 @@ IGT_Text.UI.it = {
 }
 IGT_Text.UI.pl = {
     ["lang.auto"]="Wykryj automatycznie", ["lang.en"]="Angielski", ["lang.ru"]="Rosyjski", ["lang.ru-latn"]="Rosyjski (litery łacińskie)",
-    ["lang.uk"]="Ukraiński", ["lang.be"]="Białoruski", ["lang.kk"]="Kazachski", ["lang.pl"]="Polski", ["lang.cs"]="Czeski",
+    ["lang.uk"]="Ukraiński", ["lang.be"]="Białoruski", ["lang.kk"]="Kazachski", ["lang.mn"]="Mongolski", ["lang.pl"]="Polski", ["lang.cs"]="Czeski",
     ["lang.sk"]="Słowacki", ["lang.de"]="Niemiecki", ["lang.fr"]="Francuski", ["lang.es"]="Hiszpański", ["lang.pt"]="Portugalski",
     ["lang.it"]="Włoski", ["lang.nl"]="Niderlandzki", ["lang.sv"]="Szwedzki", ["lang.da"]="Duński", ["lang.no"]="Norweski",
     ["lang.fi"]="Fiński", ["lang.hu"]="Węgierski", ["lang.ro"]="Rumuński", ["lang.bg"]="Bułgarski", ["lang.sr"]="Serbski",
@@ -1785,6 +1792,7 @@ IGT_Text.UI.pl = {
     ["status.player.changed"]="Zmienił się aktywny gracz. Wyczyszczono oczekujące wysyłki i historię czatu.",
     ["status.language"]="Mój język: %1.",
     ["status.language.font"]="Mój język: %1. Civ V pokazuje te litery (%1) tylko wtedy, gdy sama gra działa w tym języku (%1), więc to okno pozostaje po angielsku.",
+    ["status.language.fallback"]="Mój język: %1. Civ V pokazuje te litery (%1) tylko wtedy, gdy sama gra działa w tym języku (%2), więc to okno pozostaje po angielsku.",
     ["status.auto.limited"]="Dużo wiadomości od gracza %1: pominięto automatyczne tłumaczenie. Kliknij 'Przetłumacz' przy wiadomości.",
     ["status.auto.busy"]="Dużo wiadomości naraz: pominięto automatyczne tłumaczenie. Kliknij 'Przetłumacz' przy wiadomości.",
     ["status.auto.paused"]="Osiągnięto limit tłumaczeń: automatyczne tłumaczenie wstrzymane na 5 minut.",
@@ -1825,7 +1833,7 @@ IGT_Text.UI.pl = {
 }
 IGT_Text.UI.ja = {
     ["lang.auto"]="自動検出", ["lang.en"]="英語", ["lang.ru"]="ロシア語", ["lang.ru-latn"]="ロシア語（ラテン文字）",
-    ["lang.uk"]="ウクライナ語", ["lang.be"]="ベラルーシ語", ["lang.kk"]="カザフ語", ["lang.pl"]="ポーランド語", ["lang.cs"]="チェコ語",
+    ["lang.uk"]="ウクライナ語", ["lang.be"]="ベラルーシ語", ["lang.kk"]="カザフ語", ["lang.mn"]="モンゴル語", ["lang.pl"]="ポーランド語", ["lang.cs"]="チェコ語",
     ["lang.sk"]="スロバキア語", ["lang.de"]="ドイツ語", ["lang.fr"]="フランス語", ["lang.es"]="スペイン語", ["lang.pt"]="ポルトガル語",
     ["lang.it"]="イタリア語", ["lang.nl"]="オランダ語", ["lang.sv"]="スウェーデン語", ["lang.da"]="デンマーク語", ["lang.no"]="ノルウェー語",
     ["lang.fi"]="フィンランド語", ["lang.hu"]="ハンガリー語", ["lang.ro"]="ルーマニア語", ["lang.bg"]="ブルガリア語", ["lang.sr"]="セルビア語",
@@ -1916,6 +1924,7 @@ IGT_Text.UI.ja = {
     ["status.player.changed"]="操作中のプレイヤーが変わりました。送信待ちとチャット履歴を消去しました。",
     ["status.language"]="自分の言語: %1。",
     ["status.language.font"]="自分の言語: %1。Civ Vはゲーム自体が%1で動作している場合にのみ%1の文字を表示できるため、このウィンドウは英語のままです。",
+    ["status.language.fallback"]="自分の言語: %1。Civ Vはゲーム自体が%2で動作している場合にのみ%1の文字を表示できるため、このウィンドウは英語のままです。",
     ["status.auto.limited"]="%1からのメッセージが多すぎるため、自動翻訳をスキップしました。メッセージの「翻訳」をクリックしてください。",
     ["status.auto.busy"]="一度に多くのメッセージが届いたため、自動翻訳をスキップしました。メッセージの「翻訳」をクリックしてください。",
     ["status.auto.paused"]="翻訳の上限に達したため、自動翻訳を5分間停止します。",
@@ -1956,7 +1965,7 @@ IGT_Text.UI.ja = {
 }
 IGT_Text.UI.zh = {
     ["lang.auto"]="自動偵測", ["lang.en"]="英文", ["lang.ru"]="俄文", ["lang.ru-latn"]="俄文（拉丁字母）",
-    ["lang.uk"]="烏克蘭文", ["lang.be"]="白俄羅斯文", ["lang.kk"]="哈薩克文", ["lang.pl"]="波蘭文", ["lang.cs"]="捷克文",
+    ["lang.uk"]="烏克蘭文", ["lang.be"]="白俄羅斯文", ["lang.kk"]="哈薩克文", ["lang.mn"]="蒙古文", ["lang.pl"]="波蘭文", ["lang.cs"]="捷克文",
     ["lang.sk"]="斯洛伐克文", ["lang.de"]="德文", ["lang.fr"]="法文", ["lang.es"]="西班牙文", ["lang.pt"]="葡萄牙文",
     ["lang.it"]="義大利文", ["lang.nl"]="荷蘭文", ["lang.sv"]="瑞典文", ["lang.da"]="丹麥文", ["lang.no"]="挪威文",
     ["lang.fi"]="芬蘭文", ["lang.hu"]="匈牙利文", ["lang.ro"]="羅馬尼亞文", ["lang.bg"]="保加利亞文", ["lang.sr"]="塞爾維亞文",
@@ -2047,6 +2056,7 @@ IGT_Text.UI.zh = {
     ["status.player.changed"]="目前玩家已變更。待發送的訊息和聊天紀錄已清除。",
     ["status.language"]="我的語言：%1。",
     ["status.language.font"]="我的語言：%1。Civ V 只有在遊戲本身以%1執行時才能顯示%1文字，因此此視窗維持英文。",
+    ["status.language.fallback"]="我的語言：%1。Civ V 只有在遊戲本身以%2執行時才能顯示%1文字，因此此視窗維持英文。",
     ["status.auto.limited"]="來自%1的訊息過多：已略過自動翻譯。請點擊訊息上的「翻譯」。",
     ["status.auto.busy"]="同時收到過多訊息：已略過自動翻譯。請點擊訊息上的「翻譯」。",
     ["status.auto.paused"]="已達翻譯上限：自動翻譯暫停 5 分鐘。",

@@ -7,7 +7,7 @@ export const LANGUAGE_NAMES={
   it:'Italian',nl:'Dutch',sv:'Swedish',da:'Danish',no:'Norwegian',fi:'Finnish',
   hu:'Hungarian',ro:'Romanian',bg:'Bulgarian',sr:'Serbian',hr:'Croatian',el:'Greek',
   tr:'Turkish',ar:'Arabic',vi:'Vietnamese',id:'Indonesian',ja:'Japanese',ko:'Korean',
-  zh:'Chinese (Simplified)',
+  zh:'Chinese (Simplified)',mn:'Mongolian',
 };
 export const LANGUAGES=new Set(Object.keys(LANGUAGE_NAMES));
 // Pseudo-languages handled around a real one: Russian typed or shown in Latin letters,

@@ -66,6 +66,20 @@ class ReaderLanguageTests(unittest.TestCase):
         self.chat('평화?')
         self.assertEqual(self.requests()[-1][2],'ru')
 
+    def test_mongolian_reader_gets_the_russian_window_on_a_russian_game(self):
+        self.h.select('Incoming',11)  # Mongolian: no Civ V version, English game keeps English
+        self.assertEqual(self.controls.SendText.text,'Send')
+        self.assertEqual(self.controls.Incoming.text,'Mongolian')
+        self.assertIn('runs in Russian',self.controls.ActionStatus.text)
+        self.chat('Привет')
+        self.assertEqual(self.requests(),[])
+        self.chat('평화?')
+        self.assertEqual(self.requests()[-1],('auto','auto','mn','평화?'))
+        self.game_language('ru_RU')
+        self.lua.globals().Events.GameplaySetActivePlayer_handler()
+        self.assertEqual(self.controls.SendText.text,'Отправить')
+        self.assertEqual(self.controls.Incoming.text,'Монгольский')
+
     def test_western_languages_change_the_window_on_an_english_game(self):
         ui=self.lua.globals().IGT_Text.UI
         for index,code in [(4,'de'),(5,'fr'),(6,'es'),(7,'it')]:
@@ -164,10 +178,10 @@ class ReaderLanguageTests(unittest.TestCase):
     def test_new_send_and_read_languages_are_offered(self):
         target=[e.text for e in self.controls.Target.entries.values()]
         reader=[e.text for e in self.controls.Incoming.entries.values()]
-        for name in ['Russian (Latin letters)','Chinese','Japanese','German','Spanish','Polish','Turkish','Kazakh','Portuguese']:
+        for name in ['Russian (Latin letters)','Chinese','Japanese','German','Spanish','Polish','Turkish','Kazakh','Portuguese','Mongolian']:
             self.assertIn(name,target)
         self.assertNotIn('Arabic',target)
-        self.assertEqual(reader,['English','Russian','Korean','German','French','Spanish','Italian','Polish','Japanese','Chinese'])
+        self.assertEqual(reader,['English','Russian','Korean','German','French','Spanish','Italian','Polish','Japanese','Chinese','Mongolian'])
 
 
 if __name__=='__main__':

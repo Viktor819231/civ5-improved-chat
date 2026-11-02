@@ -3,7 +3,7 @@
 Translate multiplayer chat, whisper to individual players, and keep local player
 notes in a compact overlay. Works in the lobby and in-game chat.
 
-**Version 0.11.1 beta** — Civ 5-aware translation, your own language (window in 10 languages), 30 send languages.
+**Version 0.11.2 beta** — Civ 5-aware translation, your own language (window in 10 languages), 31 send languages.
 
 **[Download the companion-free beta](https://civ5-improved-chat-api.pages.dev/)**
 
@@ -25,7 +25,7 @@ outstanding. [Details and installation guide](docs/NO_COMPANION_GUIDE.txt).
   overlay itself switches to that language too.
 - Civ 5-aware translations: the game's official names in each language, player
   shorthand (gg, DoW, NC, спс, ㅋㅋ) and a casual gamer tone.
-- Translate your replies into 30 languages, including **Russian (Latin letters)**
+- Translate your replies into 31 languages, including **Russian (Latin letters)**
   for players whose game cannot show Cyrillic. Read Russian written in Latin letters too.
 - Spam-safe: automatic translations are rationed per player, a repeated line is
   translated once, and your own messages always go first.

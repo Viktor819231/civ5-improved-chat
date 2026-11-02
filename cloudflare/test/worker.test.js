@@ -144,7 +144,7 @@ test('reissuing an installation token shares quota and revocation preserves usag
 });
 test('every listed language works both ways and auto reports a real source language',async()=>{
   const s=setup({ACCOUNT_REQUESTS_PER_MINUTE:'500'}),token=await s.issue();
-  for(const code of ['fr','de','es','pl','pt','tr','it','nl','sv','zh','ja','ar','kk','be','cs','hu','ro','fi','da','no','vi','id','bg','sr','hr','el','sk']){
+  for(const code of ['fr','de','es','pl','pt','tr','it','nl','sv','zh','ja','ar','kk','be','cs','hu','ro','fi','da','no','vi','id','bg','sr','hr','el','sk','mn']){
     assert.equal((await s.request('/v1/translate',{token,data:{text:'sample',source:code,target:'en'}})).status,200);
     assert.equal((await s.request('/v1/translate',{token,data:{text:'sample',source:'en',target:code}})).status,200);
   }

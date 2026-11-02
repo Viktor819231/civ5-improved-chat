@@ -87,13 +87,14 @@ local chatRows = {};
 local lastTranslation = "";
 -- New languages are appended so saved positions and older lists stay valid.
 local sourceLanguages = { "auto", "en", "ru", "uk", "ko", "ru-latn", "zh", "ja", "de", "fr", "es", "pt", "it", "pl", "tr",
-    "be", "kk", "cs", "sk", "nl", "sv", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "vi", "id" };
+    "be", "kk", "cs", "sk", "nl", "sv", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "vi", "id", "mn" };
 -- Civ V has no Arabic or Greek font, so those are read-only languages.
 local targetLanguages = { "ru", "uk", "ko", "en", "ru-latn", "zh", "ja", "de", "fr", "es", "pt", "it", "pl", "tr",
-    "be", "kk", "cs", "sk", "nl", "sv", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "vi", "id" };
--- My language: the ten languages Civ V ships, whose letters its fonts can show.
-local incomingLanguages = { "en", "ru", "ko", "de", "fr", "es", "it", "pl", "ja", "zh" };
-local readerScripts = { en="latin", de="latin", fr="latin", es="latin", it="latin", pl="latin", ru="cyrillic", ko="hangul", ja="kana", zh="han" };
+    "be", "kk", "cs", "sk", "nl", "sv", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "vi", "id", "mn" };
+-- My language: the ten languages Civ V ships, whose letters its fonts can show,
+-- and Mongolian, which Civ V draws with its Russian font.
+local incomingLanguages = { "en", "ru", "ko", "de", "fr", "es", "it", "pl", "ja", "zh", "mn" };
+local readerScripts = { en="latin", de="latin", fr="latin", es="latin", it="latin", pl="latin", ru="cyrillic", ko="hangul", ja="kana", zh="han", mn="cyrillic" };
 local readerLanguage = "en";
 local sourceIndex, targetIndex = 1, 1;
 local receiving = true;
@@ -151,7 +152,7 @@ local TranslateRow;
 local forceRow;
 local forceSource;
 local manualLanguages = { "ru", "ru-latn", "uk", "ko", "fr", "de", "es", "pl", "pt", "tr", "it", "nl", "sv", "zh", "ja", "ar",
-    "en", "be", "kk", "cs", "sk", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "el", "vi", "id" };
+    "en", "be", "kk", "cs", "sk", "da", "no", "fi", "hu", "ro", "bg", "sr", "hr", "el", "vi", "id", "mn" };
 local windowPositions = {};
 local panelBounds;
 local dragging;
@@ -184,10 +185,13 @@ end
 -- font has Western European letters only, so other alphabets need the game
 -- itself in that language; otherwise the window stays readable in English.
 local westernLetters = { en=true, de=true, fr=true, es=true, it=true };
+-- Civ V has no Mongolian version: Mongolian players run it in Russian and get the Russian window.
+local windowFallback = { mn="ru" };
 local windowLanguage = "en";
 local function UpdateWindowLanguage()
     local game = GameLanguage();
-    windowLanguage = (readerLanguage == game or (westernLetters[readerLanguage] and westernLetters[game])) and readerLanguage or "en";
+    local wanted = windowFallback[readerLanguage] or readerLanguage;
+    windowLanguage = (wanted == game or (westernLetters[wanted] and westernLetters[game])) and wanted or "en";
 end
 local function T(key, ...) return IGT_Text.T(windowLanguage, key, ...); end
 local function LanguageName(code) return T("lang." .. tostring(code)); end
@@ -702,7 +706,9 @@ local function SetReaderLanguage(code)
     ShowPage(activePage, not expanded);
     InvalidateDraft();
     RefreshChatNames();
-    SetStatus(T(windowLanguage == code and "status.language" or "status.language.font", LanguageName(code)));
+    local fallback = windowFallback[code];
+    local status = (windowLanguage == code or windowLanguage == fallback) and "status.language" or fallback and "status.language.fallback" or "status.language.font";
+    SetStatus(T(status, LanguageName(code), fallback and LanguageName(fallback)));
 end
 
 SetupDropdowns = function()

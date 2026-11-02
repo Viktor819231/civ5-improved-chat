@@ -143,7 +143,7 @@ Send language sits beside Translate at the bottom. Outgoing Source language,
 copy-draft, connection status and draft preview are in Settings. The fixed
 English incoming destination is hidden. Cancel replaces Paste only while
 messages are queued; duplicate notes controls are hidden in expanded mode.
-Send in offers 30 languages, including Russian (Latin letters), which every
+Send in offers 31 languages, including Russian (Latin letters), which every
 Civ V font can show. Players see Cyrillic, Korean or Chinese only when their
 game runs in such a language. Source also offers Auto detect. New messages appear immediately;
 their translations replace the matching overlay row when ready.
