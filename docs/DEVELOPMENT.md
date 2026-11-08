@@ -1,13 +1,15 @@
 # Development
 
-The current beta has a native Civ V overlay and a hosted translation API.
+The current beta translates inside the game's own chat and has a hosted
+translation API.
 Personalized HTTPS downloads supply installation credentials; Lua handles
 encrypted asynchronous requests directly. Only the overlay sends game chat.
 The companion code remains for legacy builds and regression tests.
 
 | Path | Purpose |
 | --- | --- |
-| `DLC/InGameTranslateMod/UI/` | Shared Lua/XML overlay and player journal |
+| `DLC/InGameTranslateMod/UI/` | Translator, its settings window and player journal |
+| `tools/chat_hooks.py` | Adds the hook to the game's chat scripts at build time |
 | `companion/` | Mailbox worker, translation providers, credentials and clipboard |
 | `cloudflare/` | Neutral API endpoint and server-side usage controls |
 | `tests/` | Client and Lua UI regression tests |
@@ -49,8 +51,30 @@ to `build_package.py` if the game is not in the default Steam location.
 Use `--output-dir PATH` on the packaging scripts to keep verification builds
 separate from released files. Outputs are ignored under `release/` by default.
 
-The generation step creates lobby scripts and stock game-layout wrappers for
-the tests. Edit the shared overlay files, then regenerate; do not hand-edit the
+The generation step creates lobby scripts, stock game-layout wrappers and the
+hooked copies of the game's chat scripts. In-game chat is stock `DiploCorner.lua`
+with or without EUI (EUI replaces only its layout, with the same control names),
+so the hook needs no EUI code. Never copy EUI files: its licence forbids it. When
+the hook does not answer, `InGameTranslate.lua` stays a separate overlay window.
+
+Controls lent to the game's chat stay ours: they must be back before the game
+destroys a row or closes the screen. Firaxis and EUI both keep this rule for unit
+flags, and `tests/test_native_chat.py` fails if a row dies with one of ours inside.
+
+KEK Mod ships its own chat and lobby scripts at priority 300, so the stock hook
+never runs under KEK. `tools/kek_skin.py "<...>/Assets/DLC/KEK Mod v2.4"` adds
+the hook to KEK's installed scripts and puts them, at priority 310, in a folder
+inside KEK's own: it goes when that KEK version goes, because KEK's scripts must
+not run without KEK. Under KEK the translator sends through KEK's SendChat way, so
+translated messages are stored in the game, in pieces of at most 127 bytes. Run it
+again after KEK's ui_check. `tests/test_kek_chat.py` runs the in-game chat tests on
+KEK's real files from `analysis/kek-fixture` (not in Git: KEK has no licence).
+For everyone, the same lines belong in KEK itself: `analysis/kek-upstream/make_patch.py`
+writes them as a git patch for a KEK version. KEK's lobby then loads the translator's
+lobby part from Lua only when the translator is installed, so KEK's layouts stay as
+they are and players without the translator see no change.
+
+Edit the shared overlay files, then regenerate; do not hand-edit the
 generated copies. Full packaging requires the compiled companion and notices.
 Generated game-layout copies are not relicensed as original project code.
 

@@ -1,9 +1,9 @@
 # Improved Chat for Civilization V
 
-Translate multiplayer chat, whisper to individual players, and keep local player
-notes in a compact overlay. Works in the lobby and in-game chat.
+Translate multiplayer chat right inside Civ V's own chat, and keep local player
+notes. Works in the lobby and in-game chat, with or without EUI.
 
-**Version 0.11.2 beta** — Civ 5-aware translation, your own language (window in 10 languages), 31 send languages.
+**Version 0.12.0 beta** — translation built into the game's own chat, Civ 5-aware, your own language, 31 send languages.
 
 **[Download the companion-free beta](https://civ5-improved-chat-api.pages.dev/)**
 
@@ -19,30 +19,36 @@ outstanding. [Details and installation guide](docs/NO_COMPANION_GUIDE.txt).
 
 ## Features
 
+- Works in the game's own chat: messages are translated on their own line, you
+  type in the normal box, and a small **TR** menu on the chat row picks the
+  language you send in. With TR off, the chat is the game's original chat.
 - Translate incoming messages into **your language** automatically. It follows
   the language Civ V runs in (English, Russian, Korean, German, French, Spanish,
   Italian, Polish, Japanese or Chinese) and can be changed in Settings. The
-  overlay itself switches to that language too.
+  settings window switches to that language too.
 - Civ 5-aware translations: the game's official names in each language, player
   shorthand (gg, DoW, NC, спс, ㅋㅋ) and a casual gamer tone.
 - Translate your replies into 31 languages, including **Russian (Latin letters)**
   for players whose game cannot show Cyrillic. Read Russian written in Latin letters too.
 - Spam-safe: automatic translations are rationed per player, a repeated line is
   translated once, and your own messages always go first.
-- Translate your replies or send the original text, to everyone or one player.
-- Expand, collapse, resize and drag the chat window. Turn details appear on hover.
+- Translate your replies or send the original text, to everyone, your team or one player.
+- Hover a line for its original text and turn details. The **...** button on the
+  chat row opens settings, player notes and history.
 - Use Civ icons, message colours, local nicknames, player notes and encounter history.
 
 ## Install
 
 1. Download your personal ZIP from the link above and extract it.
 2. Close Civ V and copy the inner **InGameTranslateMod** folder into **Assets\DLC**.
-3. Launch Civ V and open **Improved Chat**. Choose a language and send.
+3. Launch Civ V and join a multiplayer game or lobby. Translation is already on
+   for what you read; to translate what you send, pick a language under **TR**.
 
-The beta targets stock Civ V with EUI or KEK Mod. Copy the folder into
-**Assets\DLC** as usual. Other gameplay mods stay off: the overlay hides
-itself and stops translation when one is detected. Install one copy of the
-DLC; updates to its UI require a game restart.
+It runs with any mod or DLC. Copy the folder into **Assets\DLC** as usual.
+EUI needs nothing extra: its chat runs on the same game script, and no EUI files
+are changed or copied. If a mod replaces the game's chat script, as KEK Mod does,
+Improved Chat opens as a separate window instead. Install one copy of the DLC; updates to its UI
+require a game restart.
 
 See the [companion-free guide](docs/NO_COMPANION_GUIDE.txt) for controls, troubleshooting and uninstall.
 

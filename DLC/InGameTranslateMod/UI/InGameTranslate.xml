@@ -95,6 +95,9 @@
       <GridButton ID="CopyLast" Anchor="L,T" Offset="296,44" Size="132,28" Style="SmallButton">
         <Label ID="CopyLastText" Anchor="C,C" String="Copy last" />
       </GridButton>
+      <GridButton ID="SettingsEmoji" Anchor="L,T" Offset="434,44" Size="34,28" Style="SmallButton" Hidden="1">
+        <Label Anchor="C,C" String="[ICON_HAPPINESS_1]" />
+      </GridButton>
       <Label ID="PrefixLabel" Anchor="L,T" Offset="12,97" String="Every message: no icon" />
       <GridButton ID="IconGold" Anchor="L,T" Offset="10,124" Size="34,28" Style="SmallButton" ToolTip="Gold">
         <Label Anchor="C,C" String="[ICON_GOLD]" />
@@ -246,6 +249,37 @@
       </Container>
     </Container>
   </Container>
+  <!-- Moved into the game's own chat panel when its generated hook answers (see tools/chat_hooks.py). -->
+  <Container ID="RowScrap" Hidden="1" />
+  <Container ID="ChatBar" Anchor="R,B" Size="102,26" Hidden="1">
+    <!-- A small button with a wide list, like the game's own MultiPull in DiploCorner.xml:
+         AutoSizePopUp="1" makes the list exactly as wide as the button. -->
+    <PullDown ID="SendLanguage" Anchor="L,T" Size="72,26" AutoSizePopUp="0" ScrollThreshold="230" SpaceForScroll="0">
+      <ButtonData>
+        <GridButton Style="SquareButton" Anchor="L,C" Size="72,26" Font="TwCenMT14" />
+      </ButtonData>
+      <GridData Anchor="R,B" Offset="0.-2" AnchorSide="I,O" AutoSize="1" Style="Grid9Frame27SquareBlack" Padding="5,5" />
+      <ScrollPanelData Anchor="C,C" Vertical="1" Size="210,230" AutoScrollBar="1">
+        <ScrollBar Style="VertSlider" Anchor="R,C" AnchorSide="O,I" />
+        <UpButton Style="ScrollBarUp" Anchor="R,T" AnchorSide="O,I" />
+        <DownButton Style="ScrollBarDown" Anchor="R,B" AnchorSide="O,I" />
+      </ScrollPanelData>
+      <StackData StackGrowth="Bottom" Padding="0" Anchor="C,T" />
+      <InstanceData Name="IGTDropdownEntry">
+        <GridButton ID="Button" Anchor="C,C" Size="210,26" Style="ZoomButton" Font="TwCenMT16" />
+      </InstanceData>
+    </PullDown>
+    <GridButton ID="ChatSettings" Anchor="R,T" Size="26,26" Style="SmallButton">
+      <Label Anchor="C,C" String="..." Font="TwCenMT14" />
+    </GridButton>
+  </Container>
+  <Instance Name="IGTRowTools">
+    <Button ID="Hit" Anchor="L,T" Size="490,24" ConsumeMouseButton="1">
+      <GridButton ID="TranslateButton" Anchor="R,T" Offset="2,1" Size="22,22" Style="SmallButton" Hidden="1">
+        <Label ID="TranslateLabel" Anchor="C,C" String="T" Font="TwCenMT14" />
+      </GridButton>
+    </Button>
+  </Instance>
   <Instance Name="IGTChatRow">
     <Button ID="Box" Anchor="L,T" Size="505,24" Color="0,0,0,100" ConsumeMouseButton="1">
       <Label ID="Message" Anchor="L,T" Offset="3,3" WrapWidth="495" Font="TwCenMT16" />

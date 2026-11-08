@@ -13,6 +13,7 @@ UI = Path(__file__).resolve().parents[1] / "DLC/InGameTranslateMod/UI"
 class GameUITests(unittest.TestCase):
     lobby = False
     packaged = False
+    before_engine = ""  # Lua run just before the translator loads, like an earlier screen.
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.db = sqlite3.connect(":memory:", isolation_level=None)
@@ -50,21 +51,36 @@ local function control()
  function c:SetAlpha(a) self.alpha=a end
  function c:SetWrapWidth(w) self.wrap=w end
  function c:SetOffsetVal(x,y) self.x=x;self.y=y end
+ function c:ChangeParent(p)
+  local old=rawget(self,'parent')
+  if old then old.kids[self]=nil end
+  self.parent=p
+  if rawget(p,'kids')==nil then rawset(p,'kids',{}) end
+  p.kids[self]=true
+ end
  setmetatable(c,{__index=function(_,k) return function() end end})
  return c
 end
+NewControl=control
 Controls=setmetatable({},{__index=function(t,k) local c=control();rawset(t,k,c); return c end})
 ContextPtr={}; Transcript={}
 UIManager={GetScreenSizeVal=function() return 1280,900 end}
 MouseX,MouseY=0,0
 function UIManager:GetMousePos() return MouseX,MouseY end
 MouseEvents={LButtonDown=20,LButtonUp=21,MouseMove=22,LButtonDoubleClick=23}
-function ContextPtr:BuildInstanceForControl(_,row,_)
+function ContextPtr:BuildInstanceForControl(name,row,_)
+ if name=='IGTRowTools' then ToolsBuilt=(ToolsBuilt or 0)+1;row.Hit=control();row.TranslateButton=control();row.TranslateLabel=control();return end
  row.Message=control();row.Box=control();row.TranslateButton=control();row.TranslateLabel=control();Transcript[#Transcript+1]=row
 end
 function ContextPtr:SetInputHandler(fn,...) assert(select('#',...)==0,'Civ V SetInputHandler only accepts one handler');input=fn end
 function ContextPtr:SetUpdate(fn) update=fn end
 function ContextPtr:SetShowHideHandler(fn) showhide=fn end
+function ContextPtr:SetShutdown(fn) shutdown=fn end
+LuaEvents=setmetatable({},{__index=function(t,k)
+ local listeners={}
+ local event=setmetatable({Add=function(fn) listeners[#listeners+1]=fn end},{__call=function(_,...) for _,fn in ipairs(listeners) do fn(...) end end})
+ rawset(t,k,event);return event
+end})
 function include(_) end
 ContentManager={GetAllPackageIDs=function()return {}end,IsActive=function()return false end}
 ContentType={GAMEPLAY=1}
@@ -107,6 +123,8 @@ PreGame.GetSlotStatus=function(id)return 1 end
 PreGame.GetNickName=function(id) return 'LobbyP'..id end
 PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby') end
 """)
+        if self.before_engine:
+            self.lua.execute(self.before_engine)
         if self.packaged:
             self.lua.execute("function include(_) error('Packaged lobby must not depend on include resolution') end")
             self.lua.execute((UI / "InGameTranslateLobby.lua").read_text(encoding="utf-8"))
@@ -202,7 +220,7 @@ PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby')
         self.assertGreater(len(sent), 1)
         for i in range(1, len(sent) + 1):
             self.assertLessEqual(len(sent[i].text.encode("utf-8")), 240)
-            self.assertTrue(sent[i].text.startswith("(TranslatorMod) [ICON_GOLD] "))
+            self.assertTrue(sent[i].text.startswith("[ICON_GOLD] "))
             self.assertEqual(sent[i].team, -1)
             self.assertEqual(sent[i].player, 1)
 
@@ -253,7 +271,7 @@ PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby')
         transcript = self.lua.globals().Transcript
         self.assertEqual(transcript[len(transcript)].Message.text, 'You -> ru: Can we trade?')
         count = len(transcript)
-        self.lua.globals().Events.GameMessageChat_handler(0, -1, '(TranslatorMod) Можем ли мы торговать?', 0)
+        self.lua.globals().Events.GameMessageChat_handler(0, -1, 'Можем ли мы торговать?', 0)
         self.assertEqual(len(transcript), count)
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM requests WHERE kind='incoming'").fetchone()[0], 0)
 
@@ -310,8 +328,8 @@ PreGame.IsMultiplayerGame=function() error('Do not rely on game state in lobby')
         self.tick(.81)
         sent = self.lua.globals().Sent
         self.assertEqual(len(sent), 2)
-        self.assertEqual((sent[1].text, sent[1].player, sent[1].team), ('(TranslatorMod) Перший', 1, -1))
-        self.assertEqual((sent[2].text, sent[2].player, sent[2].team), ('(TranslatorMod) 두번째', 2, -1))
+        self.assertEqual((sent[1].text, sent[1].player, sent[1].team), ('Перший', 1, -1))
+        self.assertEqual((sent[2].text, sent[2].player, sent[2].team), ('두번째', 2, -1))
         self.assertEqual(self.lua.globals().Controls.SendModeLabel.text, 'Translate: ON')
 
     def test_private_recipient_disconnect_never_broadcasts(self):

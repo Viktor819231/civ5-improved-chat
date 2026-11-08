@@ -24,10 +24,15 @@ assert patched.replace(addition, '') == original
 assert (dlc / 'UI/InGameTranslateLobby.lua').exists()
 assert 'include(' not in (dlc / 'UI/InGameTranslateLobby.lua').read_text(encoding='utf-8')
 assert 'String="Improved Chat"' in (dlc / 'UI/InGameTranslateLobby.xml').read_text(encoding='utf-8')
+assert 'IGT_LobbyChatReady( g_IGT )' in (dlc / 'UI/StagingRoom.lua').read_bytes().decode('latin-1')
+for number in range(3):
+    assert 'IGT_GameChatReady( g_IGT )' in (dlc / f'Skin{number}/DiploCorner.lua').read_bytes().decode('latin-1')
 with zipfile.ZipFile(release) as archive:
     assert archive.testzip() is None
     for path in ['InGameTranslateCompanion.exe', 'README.txt','Install Improved Chat.cmd','install.ps1','THIRD_PARTY_NOTICES.txt','MANIFEST.sha256',
                  'InGameTranslateMod/UI/StagingRoom.xml',
+                 'InGameTranslateMod/UI/StagingRoom.lua',
+                 'InGameTranslateMod/Skin2/DiploCorner.lua',
                  'InGameTranslateMod/UI/InGameTranslateLobby.xml',
                  'InGameTranslateMod/UI/IGT_History.lua',
                  'InGameTranslateMod/UI/InGameTranslateLobby.lua']:

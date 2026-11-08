@@ -1,3 +1,26 @@
+# Improved Chat 0.12.0 beta
+
+- Translation now happens in the game's own chat instead of a separate overlay,
+  in game and in the lobby, with or without EUI. Messages are translated on
+  their own line, you type in the normal chat box, and team chat and the
+  game's To: list work with translated messages.
+- A small TR menu on the chat row picks the language you send in. TR: - sends
+  exactly what you type, and is where a new install starts; your choice is kept.
+- The ... button on the chat row opens settings, player notes and history.
+- Translated messages you send no longer start with (TranslatorMod): other
+  players see only the message.
+- Hover a translated line for its original text. T translates a line, < shows
+  the original again, right-click T chooses the language.
+- Runs with any mod or DLC: it no longer switches itself off when a gameplay
+  mod or modpack is active.
+- If another mod replaces the game's chat script, the separate window returns
+  by itself. KEK Mod has its own chat and lobby, so with KEK the translator is
+  the separate window in game; a KEK version with the small hook gets the
+  in-chat buttons too.
+
+Upgrade: download again from the website and replace InGameTranslateMod with
+Civ V closed. Notes and history are kept.
+
 # Improved Chat 0.11.2 beta
 
 - Mongolian: choose it as My language to read incoming chat in Mongolian, or

@@ -9,9 +9,9 @@ GAME=Path("C:/Program Files (x86)/Steam/steamapps/common/Sid Meier's Civilizatio
 def build_template(game=GAME):
     build(game,generate_only=True)
     dlc=ROOT/'DLC/InGameTranslateMod'
-    names=['UI/InGameTranslate.lua','UI/InGameTranslate.xml','UI/InGameTranslateLobby.lua','UI/InGameTranslateLobby.xml','UI/IGT_Crypto.lua','UI/IGT_Native.lua','UI/IGT_Text.lua','UI/IGT_History.lua','UI/StagingRoom.xml']
+    names=['UI/InGameTranslate.lua','UI/InGameTranslate.xml','UI/InGameTranslateLobby.lua','UI/InGameTranslateLobby.xml','UI/IGT_Crypto.lua','UI/IGT_Native.lua','UI/IGT_Text.lua','UI/IGT_History.lua','UI/StagingRoom.xml','UI/StagingRoom.lua']
     for n in range(3):
-        names.extend([f'InGameTranslate_{n}.Civ5Pkg',f'Skin{n}/InGame.xml'])
+        names.extend([f'InGameTranslate_{n}.Civ5Pkg',f'Skin{n}/InGame.xml',f'Skin{n}/DiploCorner.lua'])
     sources={f'InGameTranslateMod/{name}':dlc/name for name in names}
     sources.update({'README.txt':ROOT/'docs/NO_COMPANION_GUIDE.txt','LICENSE.txt':ROOT/'LICENSE.txt','third-party-licenses/lua-lockbox.txt':ROOT/'third-party-licenses/lua-lockbox.txt'})
     for name in ['InGameTranslate.lua','InGameTranslateLobby.lua']:

@@ -1,56 +1,14 @@
--- InGameTranslateMod: independent UI, no changes to DiploCorner or EUI.
+-- InGameTranslateMod: translates in the game's own chat through a small hook in a
+-- generated copy of its chat script (tools/chat_hooks.py). Nothing is copied from EUI.
+-- When that hook does not answer, this same file runs as a separate overlay window.
 print("IGT shared script loaded (0.8 chat journal)");
--- Stock gameplay, optional EUI, and KEK Mod. KEK does not replace the in-game
--- screen, so this window can be added there without covering KEK's files.
--- Exact package IDs come from the installed official Civ5Pkg manifests;
--- display names are not trusted because modpacks can use arbitrary names.
-local compatiblePackages = {};
-for _, id in ipairs({
-    "293c1ee3-1176-44f6-ac1f-59663826de74", "b685d5de-7cca-4e75-81b4-2f60754e6330",
-    "ecf7c605-ba11-4cac-8d80-d71306aac471", "b3030d39-c0d8-4bc7-91b1-7ad1caf585ab",
-    "112c22b2-5308-42b6-b734-171ccab3037b", "bbb0d085-a0b1-4475-b007-3e549cf3adc3",
-    "ea67aed5-5859-4875-bf3a-360fe9e55d1b", "7459ba32-5764-44ae-8e95-01ad0e0efd48",
-    "3f49df54-68b6-44d1-a930-a168628faa59", "46eaeffc-7b1d-443d-bfc8-f825dfefb094",
-    "4255f5f7-d3ab-4e55-acee-4670082040ed", "0e3751a1-f840-4e1b-9706-519bf484e59d",
-    "6da07636-4123-4018-b643-6575b4ec336b", "8871e748-29a4-4910-8c57-8c99e32d0167",
-    "cbe91af6-0683-4326-bc77-58bb489e509f", "570f793e-fc33-417f-ae19-7cecccdd5f85",
-    "c74fe31f-6834-496f-87dc-fb1c471b7fc8", "b5932ae4-0f4f-498f-9333-e2d31b20e095"
-}) do compatiblePackages[id] = true; end
-
-local function PackageKey(id)
-    return tostring(id or ""):lower():gsub("[{}]", "");
-end
-
-local function CompatibilityProblem()
-    if not Modding or type(Modding.GetActivatedMods) ~= "function" then
-        return "Cannot check active mods; Improved Chat is disabled for this session.";
-    end
-    local ok, mods = pcall(Modding.GetActivatedMods);
-    if not ok or type(mods) ~= "table" then return "Active mod check failed; Improved Chat is disabled for this session."; end
-    for _, mod in pairs(mods) do
-        if type(mod) ~= "table" or not compatiblePackages[PackageKey(mod.ID)] then
-            return "Unsupported active mod detected. Improved Chat supports stock gameplay, optional EUI, and KEK Mod.";
-        end
-    end
-    if not ContentManager or type(ContentManager.GetAllPackageIDs) ~= "function" or
-       type(ContentManager.IsActive) ~= "function" or not ContentType or ContentType.GAMEPLAY == nil then
-        return "Cannot check gameplay packages; Improved Chat is disabled for this session.";
-    end
-    local packagesOK, packages = pcall(ContentManager.GetAllPackageIDs);
-    if not packagesOK or type(packages) ~= "table" then return "Gameplay package check failed; Improved Chat is disabled for this session."; end
-    for _, id in pairs(packages) do
-        if not compatiblePackages[PackageKey(id)] then
-            local activeOK, active = pcall(ContentManager.IsActive, id, ContentType.GAMEPLAY);
-            if not activeOK then return "Gameplay package check failed; Improved Chat is disabled for this session."; end
-            if active then return "Unsupported gameplay DLC/modpack detected. Improved Chat supports stock gameplay, optional EUI, and KEK Mod."; end
-        end
-    end
-    return nil;
-end
-
-local compatibilityDisabled = false;
-local function ShowCompatibilityDisabled(reason)
-    compatibilityDisabled = true;
+-- It runs with any mod or DLC. A mod that replaces the game's chat script leaves
+-- no hook to answer, so this file then stays the separate window.
+local switchedOff = false;
+local DetachNativeChat;
+local function SwitchOff(reason)
+    switchedOff = true;
+    if DetachNativeChat then DetachNativeChat(); end
     Controls.Panel:SetHide(true);
     if Controls.EmojiPanel then Controls.EmojiPanel:SetHide(true);end
     if Controls.PlayerMenu then Controls.PlayerMenu:SetHide(true);end
@@ -58,13 +16,7 @@ local function ShowCompatibilityDisabled(reason)
     Controls.Toggle:SetHide(true);
     Controls.Toggle:SetDisabled(true);
     Controls.Toggle:SetToolTipString(reason);
-    print("Improved Chat compatibility guard: " .. reason);
-end
-
-local initialCompatibilityProblem = CompatibilityProblem();
-if initialCompatibilityProblem then
-    ShowCompatibilityDisabled(initialCompatibilityProblem);
-    return;
+    print("Improved Chat switched off: " .. reason);
 end
 
 IGT_Config = false; -- PERSONALIZED_DOWNLOAD_CONFIG
@@ -77,6 +29,12 @@ local function LocalPlayer()
     if isLobby then return Matchmaking.GetLocalID(); end
     return Game.GetActivePlayer();
 end
+
+-- The game's own chat, once its hook has answered. Chat rows and the box the
+-- player types in then belong to the game; this file only changes their text.
+local nativeChat;
+local rowStack, rowScroll = Controls.TranscriptStack, Controls.TranscriptScroll;
+local function Draft() return nativeChat and nativeChat.Controls.ChatEntry or Controls.Draft; end
 
 local db;
 local native;
@@ -105,7 +63,6 @@ local recipientSignature = "";
 local translateOnSend = IGT_Config ~= false;
 local submissionGeneration = 0;
 local rosterElapsed = 0;
-local compatibilityElapsed = 0;
 local selectedIcon = "";
 local colorIndex = 1;
 local colors = {
@@ -267,53 +224,97 @@ local function TurnStamp()
     return T("turn", Game.GetGameTurn());
 end
 
+-- The game releases its oldest rows on its own and tells this file first, through
+-- igtGone; a row that is gone must never be touched again.
+local function RowIsLive(row)
+    if row.igtGone then return false; end
+    for _, active in ipairs(chatRows) do if active == row then return true; end end
+    return false;
+end
+
+local function FitRow(row)
+    local height = nativeChat and row.Message:GetSizeY() + nativeChat.RowPadding or math.max(24, row.Message:GetSizeY() + 8);
+    row.Box:SetSizeY(height);
+    if row.Hit then row.Hit:SetSizeY(height); end
+    row.Box:ReprocessAnchoring();
+end
+
+local function RefreshTranscript()
+    rowStack:CalculateSize();
+    rowScroll:CalculateInternalSize();
+end
+
+local function TrackRow(row)
+    chatRows[#chatRows + 1] = row;
+    while chatRows[1] and chatRows[1].igtGone do table.remove(chatRows, 1); end
+    if not nativeChat and #chatRows > 100 then
+        rowStack:ReleaseChild(chatRows[1].Box);
+        table.remove(chatRows, 1);
+    end
+end
+
 local function AddLine(text, stamp, channelColor)
-    local row = {};
-    ContextPtr:BuildInstanceForControl("IGTChatRow", row, Controls.TranscriptStack);
-    row.Message:SetWrapWidth(transcriptWidth);
-    row.Box:SetSizeX(transcriptWidth + 104);
-    row.TranslateButton:SetHide(true);
+    local row;
+    if nativeChat then
+        row = nativeChat.NewRow();
+        row.Message = row.String;
+    else
+        row = {};
+        ContextPtr:BuildInstanceForControl("IGTChatRow", row, Controls.TranscriptStack);
+        row.Message:SetWrapWidth(transcriptWidth);
+        row.Box:SetSizeX(transcriptWidth + 104);
+        row.TranslateButton:SetHide(true);
+    end
     row.stamp = stamp == nil and TurnStamp() or stamp;
     row.channelColor = channelColor;
     row.Message:SetText(IGT_Text.SafeDisplay(text));
     if row.channelColor then row.Message:SetColorByName(row.channelColor); end
     row.Message:SetToolTipString(row.stamp);
-    row.Box:SetSizeY(math.max(24, row.Message:GetSizeY() + 8));
-    row.Box:ReprocessAnchoring();
-    chatRows[#chatRows + 1] = row;
-    if #chatRows > 100 then
-        Controls.TranscriptStack:ReleaseChild(chatRows[1].Box);
-        table.remove(chatRows, 1);
-    end
-    Controls.TranscriptStack:CalculateSize();
-    Controls.TranscriptScroll:CalculateInternalSize();
-    Controls.TranscriptScroll:SetScrollValue(1);
+    FitRow(row);
+    TrackRow(row);
+    RefreshTranscript();
+    rowScroll:SetScrollValue(1);
     return row;
 end
 
 local function UpdateLine(row, text)
     if not row then return AddLine(text); end
     -- A response can arrive after a busy transcript has evicted its row.
-    local present = false;
-    for _, active in ipairs(chatRows) do if active == row then present = true; break; end; end
-    if not present then return; end
+    if not RowIsLive(row) then return; end
     row.Message:SetText(IGT_Text.SafeDisplay(text));
     if row.channelColor then row.Message:SetColorByName(row.channelColor); end
-    row.Box:SetSizeY(math.max(24, row.Message:GetSizeY() + 8));
-    row.Box:ReprocessAnchoring();
-    Controls.TranscriptStack:CalculateSize();
-    Controls.TranscriptScroll:CalculateInternalSize();
+    FitRow(row);
+    RefreshTranscript();
+end
+
+-- The game already wrote "Name: " or "Name (To You): " on its own row. Keep that
+-- wording and only add a local nickname to it.
+local function NativePrefix(chat)
+    local first, last = chat.nativePrefix:find(chat.name, 1, true);
+    if not first then return chat.nativePrefix; end
+    return chat.nativePrefix:sub(1, first - 1) .. DisplayName(chat.name, chat.steamID) .. chat.nativePrefix:sub(last + 1);
+end
+
+local function RowTooltip(row)
+    local chat = row.chat;
+    local tip = (row.stamp ~= "" and (row.stamp .. "[NEWLINE]") or "") .. ProfileTooltip(chat.targetName or chat.name, chat.targetName and chat.targetSteam or chat.steamID);
+    if nativeChat and chat.translated and not row.showOriginal then
+        tip = T("original") .. ": " .. IGT_Text.SafeDisplay(chat.original) .. "[NEWLINE]" .. tip;
+    end
+    (row.Hit or row.Message):SetToolTipString(tip);
 end
 
 local function RenderChat(row)
-    local present = false;
-    for _, active in ipairs(chatRows) do if active == row then present = true; break; end end
-    if not present then return; end
+    if not RowIsLive(row) then return; end
     local chat = row.chat;
-    local name = chat.own and T("you") or DisplayName(chat.name, chat.steamID);
-    if chat.targetName then name = name .. " -> " .. DisplayName(chat.targetName, chat.targetSteam); end
-    UpdateLine(row, (chat.prefix or "") .. name .. chat.audience .. ": " .. chat.text);
-    row.Message:SetToolTipString((row.stamp ~= "" and (row.stamp .. "[NEWLINE]") or "") .. ProfileTooltip(chat.targetName or chat.name, chat.targetName and chat.targetSteam or chat.steamID));
+    if chat.nativePrefix then
+        UpdateLine(row, (chat.prefix or "") .. NativePrefix(chat) .. chat.text);
+    else
+        local name = chat.own and T("you") or DisplayName(chat.name, chat.steamID);
+        if chat.targetName then name = name .. " -> " .. DisplayName(chat.targetName, chat.targetSteam); end
+        UpdateLine(row, (chat.prefix or "") .. name .. chat.audience .. ": " .. chat.text);
+    end
+    RowTooltip(row);
 end
 
 local function RefreshChatNames()
@@ -348,9 +349,11 @@ local function ResizeOverlay()
     Controls.TranscriptScroll:SetOffsetVal(12, transcriptTop);
     Controls.TranscriptScroll:SetSizeVal(w - 40, h - transcriptTop - 112);
     transcriptWidth = w - 149;
-    for _, row in ipairs(chatRows) do
-        row.Message:SetWrapWidth(transcriptWidth); row.Box:SetSizeX(transcriptWidth + 104);
-        row.Box:SetSizeY(math.max(24, row.Message:GetSizeY() + 8)); row.Box:ReprocessAnchoring();
+    if not nativeChat then
+        for _, row in ipairs(chatRows) do
+            row.Message:SetWrapWidth(transcriptWidth); row.Box:SetSizeX(transcriptWidth + 104);
+            FitRow(row);
+        end
     end
     Controls.DraftBox:SetOffsetVal(12, h - 100); Controls.DraftBox:SetSizeX(w - 24);
     Controls.DraftBorder:SetSizeX(w - 224); Controls.DraftBackground:SetSizeX(w - 226); Controls.Draft:SetSizeX(w - 230);
@@ -381,7 +384,16 @@ local function ResizeOverlay()
     Controls.TranscriptScroll:CalculateInternalSize();
 end
 
+local function MinimizeWindow()
+    Controls.Panel:SetHide(true); Controls.Settings:SetHide(true); Controls.ProfilesPanel:SetHide(true);
+    Controls.EmojiPanel:SetHide(true); Controls.PlayerMenu:SetHide(true); Controls.ForcePanel:SetHide(true);
+    forceRow = nil;
+    Controls.Toggle:SetHide(nativeChat ~= nil);
+end
+
 ShowPage = function(page, compact)
+    -- With the game's chat this window holds only notes, history and settings.
+    if nativeChat and page == "chat" then MinimizeWindow(); return; end
     activePage, expanded = page, not compact;
     Controls.ChatPage:SetHide(page ~= "chat");
     Controls.ProfilesPanel:SetHide(page ~= "notes");
@@ -426,6 +438,11 @@ local function RefreshLabels()
     Controls.Recipient:GetButton():SetText(recipientID == -1 and T("to.all") or T("to.player", IGT_Text.StripColors(DisplayName(selectedRecipientName or T("player.left"), recipientSteam)) .. (recipientNames[recipientID] ~= selectedRecipientName and T("left.suffix") or "")));
     Controls.Recipient:GetButton():SetToolTipString(recipientID == -1 and T("tip.to.all") or ProfileTooltip(selectedRecipientName, recipientSteam));
     Controls.SendModeLabel:SetText(translateOnSend and T("translate.on") or T("translate.off"));
+    if nativeChat then
+        local code = targetLanguages[targetIndex];
+        Controls.SendLanguage:GetButton():SetText("TR: " .. (translateOnSend and code:upper():gsub("%-LATN$", "-L") or "-"));
+        Controls.SendLanguage:GetButton():SetToolTipString(translateOnSend and (T("send.in", LanguageName(code)) .. "[NEWLINE]" .. T("tip.target")) or T("translate.off"));
+    end
     Controls.ReceiveLabel:SetText(receiving and T("auto.on") or T("auto.off"));
     Controls.PrefixLabel:SetText(T("prefix", selectedIcon ~= "" and selectedIcon or T("prefix.none")));
     Controls.MessageColorLabel:SetText(IGT_Text.Colorize(T("colour", T(colors[colorIndex][1])), colors[colorIndex][2]));
@@ -444,7 +461,7 @@ local fixedTexts = { DragHint="drag", MinimizeText="minimize", PlayerNotesText="
     ForceGoText="translate", ForceCancelText="cancel", EmojiTitle="emoji.title", EmojiCloseText="close",
     PlayerMenuNoteText="menu.note", PlayerMenuDetailsText="menu.details", PlayerMenuCloseText="close" };
 local fixedTips = { Toggle="tip.toggle", HeaderDrag="tip.drag", Minimize="tip.minimize", PlayerNotes="tip.notes",
-    EmojiButton="tip.emoji", SendMode="tip.sendmode", SendOriginal="tip.send", Translate="tip.preview", Test="tip.test",
+    EmojiButton="tip.emoji", SettingsEmoji="tip.emoji", ChatSettings="settings", SendMode="tip.sendmode", SendOriginal="tip.send", Translate="tip.preview", Test="tip.test",
     MessageColor="tip.color", Receive="tip.auto", IconGold="icon.gold", IconFood="icon.food", IconProduction="icon.production",
     IconScience="icon.science", IconCulture="icon.culture", IconFaith="icon.faith", IconHappiness="icon.happiness",
     IconMoves="icon.moves", IconStrength="icon.strength", EmojiGold="icon.gold", EmojiFood="icon.food",
@@ -627,7 +644,10 @@ RefreshRecipients = function()
                     local summary=history.Summary(historyOwner,key,name,activeGame);
                     local names={};for i=1,math.min(3,#summary.names) do names[#names+1]=PlainText(summary.names[i]);end
                     local former=#names>0 and T("previously", table.concat(names,", ") .. (#summary.names>3 and T("more", #summary.names-3) or "")) or "";
-                    AddLine(T("player.joined", PlainText(DisplayName(name,steam)), summary.games, former .. (not steam and T("name.match") or "")));
+                    -- The game's chat is small: only players you have met before get a line there.
+                    if not nativeChat or summary.games>0 then
+                        AddLine(T("player.joined", PlainText(DisplayName(name,steam)), summary.games, former .. (not steam and T("name.match") or "")));
+                    end
                 end
             end
         end
@@ -722,6 +742,18 @@ SetupDropdowns = function()
             RefreshLabels();
         end);
     end
+    if nativeChat then
+        -- One menu on the chat row: send as typed, or translated into a language.
+        local entries = { { id = 0, name = T("translate.off") } };
+        for i, code in ipairs(targetLanguages) do entries[#entries + 1] = { id = i, name = LanguageName(code) }; end
+        Dropdown(Controls.SendLanguage, entries, function(id)
+            translateOnSend = id ~= 0;
+            State("send_translate", translateOnSend and "1" or "0");
+            if id ~= 0 then targetIndex = id; State("target_language", targetLanguages[id]); end
+            InvalidateDraft();
+            RefreshLabels();
+        end);
+    end
     recipientSignature = "<uninitialized>";
     RefreshRecipients();
     Controls.Incoming:SetDisabled(false);
@@ -733,7 +765,7 @@ local function StartSession()
     -- Spam must not slow every frame: look up this session's rows by index.
     Query("CREATE INDEX IF NOT EXISTS igt_" .. requestTable .. "_session ON " .. requestTable .. "(session,status,id)");
     local saved = {};
-    for _, setting in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('window_width','window_height','reader_language','target_language','source_language')")) do
+    for _, setting in ipairs(Query("SELECT key,value FROM igt_state WHERE key IN ('window_width','window_height','reader_language','target_language','source_language','send_translate')")) do
         saved[setting.key] = setting.value;
         local value=tonumber(setting.value);
         if value then
@@ -745,6 +777,8 @@ local function StartSession()
     UpdateWindowLanguage();
     targetIndex = IndexOf(targetLanguages, saved.target_language) or IndexOf(targetLanguages, readerLanguage == "en" and "ru" or "en");
     sourceIndex = IndexOf(sourceLanguages, saved.source_language) or 1;
+    -- The game's chat stays plain until the player picks a language; the choice is kept.
+    if nativeChat then translateOnSend = saved.send_translate == "1"; end
     Query("CREATE TABLE IF NOT EXISTS igt_profiles(original_name TEXT PRIMARY KEY,alias TEXT NOT NULL,note TEXT NOT NULL)");
     history = IGT_History.Open(Query);
     historyOwner = IGT_History.Key(PlayerName(LocalPlayer()), IGT_History.SteamID(LocalPlayer()));
@@ -810,9 +844,10 @@ local function Enqueue(kind, text, source, target, info)
     return true;
 end
 
-local function RowIsLive(row)
-    for _, active in ipairs(chatRows) do if active == row then return true; end end
-    return false;
+-- The game's rows have room for one small button, so it shows a mark, not a word.
+local rowMarks = { translate="T", original="<", working="..", retry="!" };
+local function SetRowLabel(row, key, text)
+    row.TranslateLabel:SetText(nativeChat and rowMarks[key] or text or T(key));
 end
 
 -- A message is foreign when its letters are not the reader's alphabet. Latin
@@ -837,7 +872,7 @@ local function ShowIncomingTranslation(row, target, result, detected)
     row.translationPending = false; row.forceChoose = false; row.translationTarget = target;
     row.chat.translated = result; row.translationTag = tag; row.showOriginal = false;
     row.chat.prefix, row.chat.text = tag, result;
-    row.TranslateButton:SetDisabled(false); row.TranslateLabel:SetText(T("original"));
+    row.TranslateButton:SetDisabled(false); SetRowLabel(row, "original");
     RenderChat(row);
 end
 
@@ -869,7 +904,7 @@ TranslateRow = function(row, source, choose, automatic)
         row.showOriginal = not row.showOriginal;
         row.chat.text = row.showOriginal and row.chat.original or row.chat.translated;
         row.chat.prefix = row.showOriginal and "" or row.translationTag;
-        row.TranslateLabel:SetText(row.showOriginal and LanguageName(row.translationTarget or readerLanguage) or T("original"));
+        SetRowLabel(row, row.showOriginal and "translate" or "original", row.showOriginal and LanguageName(row.translationTarget or readerLanguage) or nil);
         RenderChat(row); return;
     end
     if not source and (choose or row.forceChoose) then
@@ -889,18 +924,55 @@ TranslateRow = function(row, source, choose, automatic)
     if known then ShowIncomingTranslation(row, readerLanguage, known.text, known.detected); return; end
     if automatic and not AutomaticAllowed(row.chat, row.chat.original) then return; end
     if Enqueue(automatic and "auto" or "incoming",row.chat.original,source,readerLanguage,{row=row}) then
-        row.translationPending=true; row.TranslateButton:SetDisabled(true); row.TranslateLabel:SetText(T("working"));
+        row.translationPending=true; row.TranslateButton:SetDisabled(true); SetRowLabel(row, "working");
     end
 end
 
-local function OnChat(fromPlayer, toPlayer, text, targetType)
+-- A row of the game's chat gets one invisible button over it, for the hover text
+-- and right-click menu, holding the small translate button. It is built here and
+-- moved into the game's row, the way the game moves unit flags between screens.
+-- Like those flags it stays this file's own: it comes back to RowScrap before the
+-- game destroys the row (ParkRowTools) and serves a later row, the way the game
+-- keeps its yield icons in a Scrap box. The game must never destroy one of these.
+local freeTools = {};
+
+local function AttachRowTools(row)
+    local tools = table.remove(freeTools);
+    if not tools then
+        tools = {};
+        ContextPtr:BuildInstanceForControl("IGTRowTools", tools, Controls.RowScrap);
+    end
+    tools.Hit:ChangeParent(row.Box);
+    tools.Hit:SetSizeX(row.Box:GetSizeX());
+    tools.TranslateButton:SetDisabled(false);
+    row.tools = tools;
+    row.Hit, row.TranslateButton, row.TranslateLabel = tools.Hit, tools.TranslateButton, tools.TranslateLabel;
+end
+
+local function ParkRowTools(row)
+    local tools = row.tools;
+    if not tools then return; end
+    row.tools, row.Hit, row.TranslateButton, row.TranslateLabel = nil, nil, nil, nil;
+    tools.Hit:ChangeParent(Controls.RowScrap);
+    freeTools[#freeTools + 1] = tools;
+end
+
+local function OnChat(fromPlayer, toPlayer, text, targetType, nativeRow)
     if not initialized then return; end
+    if nativeChat and not nativeRow then return; end
     if type(text) ~= "string" or text == "" then return; end
+    -- KEK's hidden desync checks travel as chat; its own chat never shows them.
+    if text:sub(1, 5) == "~~KS|" then return; end
     Safe(function()
         local own = fromPlayer == LocalPlayer();
         if own then
             for i, echo in ipairs(expectedEchoes) do
-                if echo.text == text then table.remove(expectedEchoes, i); return; end
+                if echo.text == text then
+                    table.remove(expectedEchoes, i);
+                    -- The translator already wrote this message on its own row.
+                    if nativeRow then nativeRow.Box:SetHide(true); RefreshTranscript(); rowScroll:SetScrollValue(1); end
+                    return;
+                end
             end
         end
         local audience = "";
@@ -909,13 +981,28 @@ local function OnChat(fromPlayer, toPlayer, text, targetType)
         local private = ChatTargetTypes and targetType == ChatTargetTypes.CHATTARGET_PLAYER;
         if team then audience = T("team");
         elseif private then audience = T("private"); end
-        local row = AddLine("",nil,private and "Magenta_Chat" or team and "Green_Chat" or own and "Gray_Chat" or nil);
+        local row = nativeRow;
+        if row then
+            row.Message, row.stamp = row.String, row.gameStamp or TurnStamp();
+            TrackRow(row);
+            if not own then AttachRowTools(row); end
+        else
+            row = AddLine("",nil,private and "Magenta_Chat" or team and "Green_Chat" or own and "Gray_Chat" or nil);
+        end
         row.chat = { original=text,name = PlayerName(fromPlayer), steamID=IGT_History.SteamID(fromPlayer), own = own, audience = audience, text = text,
             targetSteam=own and private and IGT_History.SteamID(toPlayer) or nil,
             targetName = own and private and PlayerName(toPlayer) or nil };
-        RenderChat(row);
+        if nativeRow then
+            local shown = tostring(row.String:GetText() or "");
+            row.chat.nativePrefix = shown:sub(-#text) == text and shown:sub(1, #shown - #text) or (row.chat.name .. ": ");
+            -- A row with nothing to add stays exactly as the game wrote it.
+            if ProfileFor(row.chat.name, row.chat.steamID) then RenderChat(row); else RowTooltip(row); end
+            FitRow(row);
+        else
+            RenderChat(row);
+        end
         if not own and Mouse.eRClick then
-            row.Box:RegisterCallback(Mouse.eRClick,function()
+            (row.Hit or row.Box):RegisterCallback(Mouse.eRClick,function()
                 if not initialized or not RowIsLive(row) then return;end
                 contextPlayer={name=row.chat.name,steam=row.chat.steamID};
                 local x,y=UIManager:GetMousePos();local sw,sh=UIManager:GetScreenSizeVal();
@@ -924,7 +1011,7 @@ local function OnChat(fromPlayer, toPlayer, text, targetType)
             end);
         end
         if not own then
-            row.TranslateButton:SetHide(false); row.TranslateLabel:SetText(T("translate"));
+            row.TranslateButton:SetHide(false); SetRowLabel(row, "translate");
             row.TranslateButton:SetToolTipString(T("tip.row", LanguageName(readerLanguage)));
             row.TranslateButton:RegisterCallback(Mouse.eLClick,function() Safe(function() TranslateRow(row); end); end);
             if Mouse.eRClick then row.TranslateButton:RegisterCallback(Mouse.eRClick,function() Safe(function() TranslateRow(row,nil,true); end); end); end
@@ -936,10 +1023,21 @@ end
 local function TranslateDraft()
     Safe(function()
         InvalidateDraft();
-        Enqueue("outgoing", Controls.Draft:GetText(), sourceLanguages[sourceIndex], targetLanguages[targetIndex], {
-            generation = draftGeneration, draft = Controls.Draft:GetText()
+        Enqueue("outgoing", Draft():GetText(), sourceLanguages[sourceIndex], targetLanguages[targetIndex], {
+            generation = draftGeneration, draft = Draft():GetText()
         });
     end);
+end
+
+local function SendLabel(options, translated)
+    local team = options.team and options.team ~= -1;
+    return (translated and T("you.to", options.target) or T("you")) .. (team and T("team") or "") ..
+        (options.recipient ~= -1 and T("to.private", DisplayName(options.name,options.steamID)) or "");
+end
+
+local function SendColor(options)
+    if options.recipient ~= -1 then return "Magenta_Chat"; end
+    return options.team and options.team ~= -1 and "Green_Chat" or "Gray_Chat";
 end
 
 local function BeginSend(text, translated, options)
@@ -947,49 +1045,75 @@ local function BeginSend(text, translated, options)
     if #sendQueue > 100 then SetStatus(T("status.send.full")); return; end
     if not isLobby and not PreGame.IsMultiplayerGame() then SetStatus(T("status.mp.only")); return; end
     if not text or not text:find("%S") then SetStatus(T("status.nothing")); return; end
-    options = options or { original = Controls.Draft:GetText(), recipient = recipientID, name = selectedRecipientName, steamID = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil, target = targetLanguages[targetIndex], icon = selectedIcon, color = colors[colorIndex][2] };
+    options = options or { original = Draft():GetText(), recipient = recipientID, name = selectedRecipientName, steamID = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil, target = targetLanguages[targetIndex], icon = selectedIcon, color = colors[colorIndex][2] };
     if options.recipient ~= -1 and (PlayerRoster()[options.recipient] ~= options.name or (options.steamID and IGT_History.SteamID(options.recipient) ~= options.steamID)) then
         SetStatus(T("status.recipient.changed")); return;
     end
-    local prefix = (translated and "(TranslatorMod) " or "") .. (options.icon ~= "" and options.icon .. " " or "");
+    -- Translated messages go out as plain text, with no tag (user, 2026-11-08).
+    local prefix = options.icon ~= "" and options.icon .. " " or "";
     local color = options.color;
     local colorBytes = color ~= "" and (#color + 12) or 0;
     text = IGT_Text.SafeDisplay(color ~= "" and IGT_Text.StripColors(text) or text);
-    local chunks, splitError = IGT_Text.Split(text, 240 - #prefix - colorBytes);
+    -- A chat that stores what it sends (KEK) says how much one message may hold.
+    local chunks, splitError = IGT_Text.Split(text, (nativeChat and nativeChat.MaxBytes or 240) - #prefix - colorBytes);
     if not chunks or #chunks == 0 then SetStatus(splitError or T("status.nothing")); return; end
     if #chunks > 20 then SetStatus(T("status.too.long")); return; end
     local player = LocalPlayer();
-    local batch = { original = options.original,
-        label = (translated and T("you.to", options.target) or T("you")) .. (options.recipient ~= -1 and T("to.private", DisplayName(options.name,options.steamID)) or ""),
+    local batch = { original = options.original, row = options.row,
+        label = SendLabel(options, translated),
         total = #chunks, sent = 0, color = color, translated = translated,
-        channelColor = options.recipient ~= -1 and "Magenta_Chat" or "Gray_Chat" };
+        channelColor = SendColor(options) };
     for i, chunk in ipairs(chunks) do
-        sendQueue[#sendQueue + 1] = { text = IGT_Text.Colorize(prefix .. chunk, color), team = -1, player = options.recipient, recipientName = options.name, steamID = options.steamID, active = player, session = session, batch = batch };
+        sendQueue[#sendQueue + 1] = { text = IGT_Text.Colorize(prefix .. chunk, color), team = options.team or -1, player = options.recipient, recipientName = options.name, steamID = options.steamID, active = player, session = session, batch = batch };
     end
     Controls.CancelSend:SetDisabled(false);
     SetStatus(T("status.sending", #chunks, options.recipient == -1 and T("all") or options.name));
     return true;
 end
 
-local function SubmitDraft()
+-- In the game's chat nothing else shows a status, so a refusal goes on a row.
+local function Refuse(row)
+    if not nativeChat then return; end
+    if row then UpdateLine(row, T("not.sent", row.draftText, statusText)); else AddLine(statusText, ""); end
+end
+
+local function SubmitDraft(typed, team)
     Safe(function()
-        local text = Controls.Draft:GetText();
+        local text = typed or Draft():GetText();
         if not text or not text:find("%S") then return; end
         local roster = PlayerRoster();
-        if recipientID ~= -1 and (not roster[recipientID] or roster[recipientID] ~= selectedRecipientName) then SetStatus(T("status.select.recipient")); return; end
-        local options = { original = text, recipient = recipientID, name = roster[recipientID], steamID = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil, target = targetLanguages[targetIndex], icon = selectedIcon, color = colors[colorIndex][2] };
+        if recipientID ~= -1 and (not roster[recipientID] or roster[recipientID] ~= selectedRecipientName) then SetStatus(T("status.select.recipient")); Refuse(); return; end
+        local options = { original = text, recipient = recipientID, team = team or -1, name = roster[recipientID], steamID = recipientID ~= -1 and IGT_History.SteamID(recipientID) or nil, target = targetLanguages[targetIndex], icon = selectedIcon, color = colors[colorIndex][2] };
         local accepted;
         if translateOnSend then
+            -- Translating takes a moment: show the message right away, on the row it will keep.
+            if nativeChat then
+                options.row = AddLine(SendLabel(options, true) .. ": " .. text .. " (" .. T("working") .. ")", nil, SendColor(options));
+                options.row.draftText = text;
+            end
             accepted = Enqueue("outgoing", text, sourceLanguages[sourceIndex], options.target, {
                 autoSend = true, options = options, generation = submissionGeneration, active = LocalPlayer()
             });
         else accepted = BeginSend(text, false, options); end
         if accepted then
-            Controls.Draft:SetText("");
+            Draft():SetText("");
             InvalidateDraft();
-            Controls.Draft:TakeFocus();
+            if not nativeChat then Draft():TakeFocus(); end
+        else
+            Refuse(options.row);
         end
     end);
+end
+
+-- Enter in the game's own chat box. Returning nothing leaves the message to the
+-- game, so with translation off this chat is exactly the original one.
+local function OnNativeSend(text, team, player)
+    if not initialized or type(text) ~= "string" or not text:find("%S") then return; end
+    if nativeChat.OwnRecipient then player = recipientID;
+    else recipientID, selectedRecipientName = player, PlayerRoster()[player]; end
+    if not translateOnSend and selectedIcon == "" and colors[colorIndex][2] == "" and (player == -1 or not nativeChat.OwnRecipient) then return; end
+    SubmitDraft(text, team);
+    return true;
 end
 
 local function CancelSend()
@@ -1053,16 +1177,18 @@ local function Poll()
             pending[id] = nil;
             if info.row and info.row.chat and RowIsLive(info.row) then
                 info.row.translationPending=false; info.row.TranslateButton:SetDisabled(false);
-                info.row.TranslateLabel:SetText(row.status == "error" and T("retry") or T("original"));
+                SetRowLabel(info.row, row.status == "error" and "retry" or "original");
                 info.row.forceChoose=row.status == "error";
             end
             if row.status == "error" then
                 local reason = ErrorText(row.error);
                 if info.kind == "auto" and row.error == LIMIT_ERROR then
                     autoPausedUntil = clock + 300; SetStatus(T("status.auto.paused"));
+                    if nativeChat then AddLine(statusText, ""); end
                 end
                 if info.autoSend then
-                    AddLine(T("not.sent", info.original, row.error and reason or T("translation.failed")));
+                    local line = T("not.sent", info.original, row.error and reason or T("translation.failed"));
+                    if info.options and info.options.row then UpdateLine(info.options.row, line); else AddLine(line); end
                     SetStatus(T("status.failed.unsent"));
                 elseif info.kind ~= "outgoing" or info.generation == draftGeneration then
                     if not (info.kind == "auto" and row.error == LIMIT_ERROR) then SetStatus(T("status.failed", row.error and reason or T("unknown.error"))); end
@@ -1075,9 +1201,12 @@ local function Poll()
             elseif info.kind == "outgoing" then
                 if info.autoSend then
                     if info.generation == submissionGeneration and info.active == LocalPlayer() then
-                        if not BeginSend(tostring(row.result or ""), true, info.options) then AddLine(T("not.sent.short", info.original)); end
+                        if not BeginSend(tostring(row.result or ""), true, info.options) then
+                            local line = T("not.sent.short", info.original);
+                            if info.options.row then UpdateLine(info.options.row, line); else AddLine(line); end
+                        end
                     end
-                elseif info.generation == draftGeneration and info.draft == Controls.Draft:GetText() then
+                elseif info.generation == draftGeneration and info.draft == Draft():GetText() then
                     translatedDraft = tostring(row.result or "");
                     translatedSource = info.draft;
                     lastTranslation = translatedDraft;
@@ -1100,7 +1229,7 @@ local function Poll()
     RefreshSendState();
     Controls.CompanionStatus:SetText(native and (native.Enabled() and T("online.enabled") or T("online.disabled")) or alive and T("companion.connected") or T("companion.offline"));
     if pasteToken and state.clipboard_paste_token == pasteToken then
-        Controls.Draft:SetText(tostring(state.clipboard_paste_result or ""):gsub("[\r\n\t]", " "));
+        Draft():SetText(tostring(state.clipboard_paste_result or ""):gsub("[\r\n\t]", " "));
         InvalidateDraft();
         pasteToken = nil;
         SetStatus(T("status.pasted"));
@@ -1128,16 +1257,6 @@ local function Update(delta)
     if not initialized then return; end
     clock = clock + delta;
     UpdateWindowDrag();
-    compatibilityElapsed = compatibilityElapsed + delta;
-    if compatibilityElapsed >= 5 then
-        compatibilityElapsed = 0;
-        local reason = CompatibilityProblem();
-        if reason then
-            sendQueue, pending, initialized = {}, {}, false;
-            ShowCompatibilityDisabled(reason);
-            return;
-        end
-    end
     if native then Safe(function() native.Update(delta); end); end
     historyElapsed = historyElapsed + delta;
     if historyElapsed >= 10 then
@@ -1173,7 +1292,9 @@ local function Update(delta)
                 local echo = { text = item.text, age = 0 };
                 expectedEchoes[#expectedEchoes + 1] = echo;
                 local ok = Safe(function()
-                    if isLobby and item.player == -1 then Network.SendChat(item.text);
+                    -- KEK's chat stores every message in the game; its hook sends the same way.
+                    if nativeChat and nativeChat.Send then nativeChat.Send(item.text, item.team, item.player);
+                    elseif isLobby and item.player == -1 then Network.SendChat(item.text);
                     else Network.SendChat(item.text, item.team, item.player); end
                 end);
                 if ok then
@@ -1208,17 +1329,28 @@ Controls.Toggle:RegisterCallback(Mouse.eLClick, function()
     if Controls.Panel:IsHidden() then Controls.Settings:SetHide(true); Controls.ProfilesPanel:SetHide(true); Controls.EmojiPanel:SetHide(true); Controls.PlayerMenu:SetHide(true); Controls.ForcePanel:SetHide(true); forceRow=nil;
     else ShowPage(activePage,not expanded); end
 end);
-Controls.Minimize:RegisterCallback(Mouse.eLClick, function() Controls.Panel:SetHide(true); Controls.Settings:SetHide(true); Controls.ProfilesPanel:SetHide(true); Controls.EmojiPanel:SetHide(true); Controls.PlayerMenu:SetHide(true); Controls.ForcePanel:SetHide(true); forceRow=nil; Controls.Toggle:SetHide(false); end);
+Controls.Minimize:RegisterCallback(Mouse.eLClick, MinimizeWindow);
+-- The small button on the chat row opens the window; it toggles like the old launcher.
+Controls.ChatSettings:RegisterCallback(Mouse.eLClick, function()
+    Safe(function()
+        if isLobby and not initialized then Initialize(); end
+        if not Controls.Panel:IsHidden() then MinimizeWindow(); return; end
+        Controls.Panel:SetHide(false);
+        ShowPage("settings");
+    end);
+end);
 Controls.Expand:RegisterCallback(Mouse.eLClick, function() ShowPage("chat", expanded); end);
 Controls.More:RegisterCallback(Mouse.eLClick, function() ShowPage("settings"); end);
 Controls.ChatTab:RegisterCallback(Mouse.eLClick, function() ShowPage("chat"); end);
 Controls.NotesTab:RegisterCallback(Mouse.eLClick, function() Safe(function() OpenProfiles(selectedRecipientName or editingName); end); end);
 Controls.HistoryTab:RegisterCallback(Mouse.eLClick, function() Safe(function() ShowPage("history"); RefreshHistory(); end); end);
 Controls.SettingsTab:RegisterCallback(Mouse.eLClick, function() ShowPage("settings"); end);
-Controls.EmojiButton:RegisterCallback(Mouse.eLClick,function()
+local function ToggleEmoji()
     if panelBounds then Controls.EmojiPanel:SetOffsetVal(math.max(0,panelBounds.x+panelBounds.w-362),math.max(0,panelBounds.y+panelBounds.h-254));end
     Controls.EmojiPanel:SetHide(not Controls.EmojiPanel:IsHidden());
-end);
+end
+Controls.EmojiButton:RegisterCallback(Mouse.eLClick,ToggleEmoji);
+Controls.SettingsEmoji:RegisterCallback(Mouse.eLClick,ToggleEmoji);
 Controls.EmojiClose:RegisterCallback(Mouse.eLClick,function() Controls.EmojiPanel:SetHide(true);end);
 Controls.PlayerMenuClose:RegisterCallback(Mouse.eLClick,function() Controls.PlayerMenu:SetHide(true);contextPlayer=nil;end);
 Controls.PlayerMenuNote:RegisterCallback(Mouse.eLClick,function()
@@ -1249,8 +1381,8 @@ Controls.HeightSlider:RegisterSliderCallback(function(value)
     Safe(function() expandedHeight=math.floor((620+math.max(0,math.min(1,value))*380)/10+0.5)*10;SaveWindowSize();ResizeOverlay();end);
 end);
 Controls.SizeSmall:RegisterCallback(Mouse.eLClick,function() ShowPage("chat",true);end);
-Controls.SizeMedium:RegisterCallback(Mouse.eLClick,function() Safe(function() expandedWidth,expandedHeight=960,700;SaveWindowSize();ShowPage("chat");end);end);
-Controls.SizeLarge:RegisterCallback(Mouse.eLClick,function() Safe(function() expandedWidth,expandedHeight=1100,820;SaveWindowSize();ShowPage("chat");end);end);
+Controls.SizeMedium:RegisterCallback(Mouse.eLClick,function() Safe(function() expandedWidth,expandedHeight=960,700;SaveWindowSize();ShowPage(nativeChat and "settings" or "chat");end);end);
+Controls.SizeLarge:RegisterCallback(Mouse.eLClick,function() Safe(function() expandedWidth,expandedHeight=1100,820;SaveWindowSize();ShowPage(nativeChat and "settings" or "chat");end);end);
 Controls.HistoryNew:RegisterCallback(Mouse.eLClick, function() Safe(function() StartRecording(false); end); end);
 Controls.HistoryResume:RegisterCallback(Mouse.eLClick, function() Safe(function() StartRecording(true); end); end);
 Controls.HistoryStop:RegisterCallback(Mouse.eLClick, function() Safe(function() ObserveGame(); activeGame=nil; RefreshHistory(); end); end);
@@ -1290,15 +1422,15 @@ Controls.Receive:RegisterCallback(Mouse.eLClick, function() receiving = not rece
 Controls.Translate:RegisterCallback(Mouse.eLClick, TranslateDraft);
 Controls.SendTranslated:RegisterCallback(Mouse.eLClick, function()
     Safe(function()
-        if translatedSource ~= Controls.Draft:GetText() then InvalidateDraft(); SetStatus(T("status.draft.changed")); return; end
-        if BeginSend(translatedDraft, true) then Controls.Draft:SetText(""); InvalidateDraft(); Controls.Draft:TakeFocus(); end
+        if translatedSource ~= Draft():GetText() then InvalidateDraft(); SetStatus(T("status.draft.changed")); return; end
+        if BeginSend(translatedDraft, true) then Draft():SetText(""); InvalidateDraft(); Draft():TakeFocus(); end
     end);
 end);
-Controls.SendOriginal:RegisterCallback(Mouse.eLClick, SubmitDraft);
+Controls.SendOriginal:RegisterCallback(Mouse.eLClick, function() SubmitDraft(); end);
 Controls.CancelSend:RegisterCallback(Mouse.eLClick, CancelSend);
 -- Draft uses EditMode=0 (chat/Enter mode). EditMode=1 also commits on focus
 -- loss, which would send while clicking a language or translation control.
-Controls.Draft:RegisterCallback(SubmitDraft);
+Controls.Draft:RegisterCallback(function() SubmitDraft(); end);
 Controls.Paste:RegisterCallback(Mouse.eLClick, function()
     Safe(function()
         pasteCounter = pasteCounter + 1;
@@ -1308,7 +1440,7 @@ Controls.Paste:RegisterCallback(Mouse.eLClick, function()
     end);
 end);
 Controls.CopyDraft:RegisterCallback(Mouse.eLClick, function()
-    Safe(function() State("clipboard_copy", Controls.Draft:GetText()); SetStatus(T("status.copied.draft")); end);
+    Safe(function() State("clipboard_copy", Draft():GetText()); SetStatus(T("status.copied.draft")); end);
 end);
 Controls.CopyLast:RegisterCallback(Mouse.eLClick, function()
     Safe(function() State("clipboard_copy", lastTranslation); SetStatus(T("status.copied.last")); end);
@@ -1327,9 +1459,17 @@ for _, entry in ipairs(icons) do
     local control=Controls[entry[1]:gsub("^Icon","Emoji")];local token=entry[2];
     control:RegisterCallback(Mouse.eLClick,function()
         if not initialized then return;end
-        Controls.Draft:SetText(Controls.Draft:GetText() .. " " .. token .. " ");
-        InvalidateDraft();Controls.EmojiPanel:SetHide(true);Controls.Draft:TakeFocus();
+        Draft():SetText(Draft():GetText() .. " " .. token .. " ");
+        InvalidateDraft();Controls.EmojiPanel:SetHide(true);Draft():TakeFocus();
     end);
+end
+-- Rows of the game's chat stay with the game; only the overlay removes its own.
+local function ClearRows()
+    if not nativeChat then
+        for _, row in ipairs(chatRows) do Controls.TranscriptStack:ReleaseChild(row.Box); end
+    end
+    chatRows = {};
+    RefreshTranscript();
 end
 for _, entry in ipairs(icons) do
     local token = entry[2];
@@ -1357,14 +1497,9 @@ end);
 Events.GameMessageChat.Add(OnChat);
 if not isLobby then Events.GameplaySetActivePlayer.Add(function()
     if not initialized then return; end
-    local reason = CompatibilityProblem();
-    if reason then sendQueue, pending, initialized = {}, {}, false; ShowCompatibilityDisabled(reason); return; end
     Safe(function()
-        for _, row in ipairs(chatRows) do Controls.TranscriptStack:ReleaseChild(row.Box); end
-        chatRows = {};
-        Controls.TranscriptStack:CalculateSize();
-        Controls.TranscriptScroll:CalculateInternalSize();
-        Controls.Draft:SetText("");
+        ClearRows();
+        Draft():SetText("");
         lastTranslation = "";
         StartSession();
         SetupDropdowns();
@@ -1374,7 +1509,7 @@ if not isLobby then Events.GameplaySetActivePlayer.Add(function()
 end); end
 
 ContextPtr:SetInputHandler(function(uiMsg, key)
-    if compatibilityDisabled then return false; end
+    if switchedOff then return false; end
     if uiMsg == KeyEvents.KeyDown and key == Keys.VK_ESCAPE then
         if not Controls.EmojiPanel:IsHidden() then Controls.EmojiPanel:SetHide(true);return true;end
         if not Controls.PlayerMenu:IsHidden() then Controls.PlayerMenu:SetHide(true);contextPlayer=nil;return true;end
@@ -1387,18 +1522,115 @@ ContextPtr:SetInputHandler(function(uiMsg, key)
         Controls.Panel:SetHide(true);
         Controls.Settings:SetHide(true);
         Controls.ProfilesPanel:SetHide(true);
-        Controls.Toggle:SetHide(false);
+        Controls.Toggle:SetHide(nativeChat ~= nil);
         return true;
     end
     return false;
 end);
 Controls.HeaderDrag:RegisterCallback(Mouse.eLClick,function() end);
-if Mouse.eLDblClick then Controls.HeaderDrag:RegisterCallback(Mouse.eLDblClick,function() dragging=nil;ShowPage("chat",expanded);end); end
+if Mouse.eLDblClick then Controls.HeaderDrag:RegisterCallback(Mouse.eLDblClick,function() dragging=nil;if not nativeChat then ShowPage("chat",expanded);end;end); end
+
+-- The game's chat offers a hook when this mod's copy of its script is the one
+-- running. Any other script, such as another mod's, simply never answers and this
+-- file stays the overlay. The layout numbers come with the hook, beside the stock
+-- layout they fit: the input row keeps its place and gives up its right end.
+local contextAlive = true;
+
+local function PlaceBar(hook)
+    local bar = Controls.ChatBar;
+    bar:ChangeParent(hook.Controls.ChatPanel);
+    bar:SetAnchor("R,B"); bar:SetOffsetVal(hook.BarX, hook.BarY); bar:SetHide(false);
+    bar:ReprocessAnchoring();
+end
+
+local function ParkBar()
+    Controls.ChatBar:SetHide(true);
+    Controls.ChatBar:ChangeParent(ContextPtr);
+end
+
+-- Nothing of this file may be inside the game's chat when that screen goes, so
+-- whichever of the two closes first brings everything home.
+local function TakeBackControls()
+    local hook = nativeChat;
+    if not hook then return; end
+    nativeChat = nil;
+    hook.OnRow, hook.OnSend, hook.OnRowGone, hook.OnShowHide, hook.OnShutdown = nil, nil, nil, nil, nil;
+    hook.Taken = nil;
+    rowStack, rowScroll = Controls.TranscriptStack, Controls.TranscriptScroll;
+    for _, row in ipairs(chatRows) do pcall(ParkRowTools, row); end
+    chatRows = {};
+    pcall(ParkBar);
+    print("Improved Chat: took its controls back from the game's chat");
+    return hook;
+end
+
+ContextPtr:SetShutdown(function() contextAlive = false; initialized = false; TakeBackControls(); end);
+
+local function AttachNativeChat(hook)
+    if nativeChat or hook.Dead or switchedOff or not contextAlive then return; end
+    -- One translator per chat: a second copy of this screen (KEK's lobby loads one
+    -- itself) switches off rather than adding a second bar or translating twice.
+    if hook.Taken then
+        sendQueue, pending, initialized = {}, {}, false;
+        SwitchOff("Another copy of Improved Chat already works in this chat.");
+        return;
+    end
+    local ok, err = pcall(function()
+        nativeChat = hook;
+        hook.Taken = true;
+        rowStack, rowScroll = hook.Controls.ChatStack, hook.Controls.ChatScroll;
+        local bar, entry = Controls.ChatBar, hook.Controls.ChatEntry;
+        if hook.OwnRecipient then
+            bar:SetSizeX(262);
+            Controls.Recipient:ChangeParent(bar); Controls.Recipient:SetOffsetVal(0, 0);
+            Controls.SendLanguage:SetOffsetVal(160, 0);
+        end
+        PlaceBar(hook);
+        entry:SetAnchor("L,C"); entry:SetSizeX(hook.EntryWidth); entry:ReprocessAnchoring();
+        Controls.Toggle:SetHide(true); Controls.Panel:SetHide(true);
+        Controls.Expand:SetHide(true); Controls.SizeSmall:SetHide(true); Controls.ChatTab:SetHide(true);
+        Controls.SettingsEmoji:SetHide(false);
+        Controls.NotesTab:SetOffsetVal(0, 0); Controls.HistoryTab:SetOffsetVal(154, 0); Controls.SettingsTab:SetOffsetVal(308, 0);
+        activePage = "settings";
+        hook.OnRow = function(row, fromPlayer, toPlayer, text, targetType, stamp)
+            -- KEK gives each row its own turn and time, also for chat reloaded from the save.
+            row.gameStamp = stamp;
+            -- The lobby writes "connected" and the like on rows of its own, with no chat type.
+            if targetType ~= nil then OnChat(fromPlayer, toPlayer, text, targetType, row); end
+        end;
+        hook.OnSend = OnNativeSend;
+        hook.OnRowGone = function(row) pcall(ParkRowTools, row); end;
+        hook.OnShutdown = TakeBackControls;
+        -- Only the lobby calls this: starting a game hides it before anything closes.
+        hook.OnShowHide = function(hidden) pcall(function() if hidden then ParkBar(); else PlaceBar(hook); end end); end;
+        if initialized then
+            local saved = Query("SELECT value FROM igt_state WHERE key='send_translate'");
+            translateOnSend = saved[1] ~= nil and saved[1].value == "1";
+            SetupDropdowns(); ApplyFixedTexts(); RefreshLabels();
+        end
+        print("Improved Chat: translating in the game's own chat");
+    end);
+    if not ok then
+        print("Improved Chat: staying a separate window: " .. tostring(err));
+        DetachNativeChat();
+    end
+end
+
+DetachNativeChat = function()
+    local hook = TakeBackControls();
+    if not hook then return; end
+    Controls.Toggle:SetHide(false); Controls.Expand:SetHide(false); Controls.SizeSmall:SetHide(false); Controls.ChatTab:SetHide(false);
+    Controls.SettingsEmoji:SetHide(true);
+    local entry = hook.Controls.ChatEntry;
+    entry:SetAnchor(hook.EntryAnchor); entry:SetSizeX(hook.EntrySize); entry:ReprocessAnchoring();
+end
+
+local chatEvent = isLobby and "IGT_LobbyChat" or "IGT_GameChat";
+LuaEvents[chatEvent .. "Ready"].Add(AttachNativeChat);
+LuaEvents[chatEvent .. "Hello"]();
 
 Initialize = function()
-    if compatibilityDisabled then return; end
-    local reason = CompatibilityProblem();
-    if reason then initialized = false; ShowCompatibilityDisabled(reason); return; end
+    if switchedOff then return; end
     db = Modding.OpenUserData("InGameTranslateMod", 1);
     StartSession();
     initialized = true;
@@ -1407,7 +1639,7 @@ Initialize = function()
     RefreshLabels();
     ResizeOverlay();
     SetStatus(IGT_Config and "" or T("status.companion"));
-    AddLine(T("ready"), "");
+    if not nativeChat then AddLine(T("ready"), ""); end
     print("InGameTranslateMod initialized session " .. session);
 end
 
@@ -1415,7 +1647,7 @@ end
 -- lobby owns a mailbox; it must never steal the in-game translator's session.
 if isLobby then
     ContextPtr:SetShowHideHandler(function(hidden)
-        if compatibilityDisabled then return; end
+        if switchedOff then return; end
         print("IGT lobby visibility", hidden);
         Safe(function()
             if hidden then
@@ -1427,15 +1659,14 @@ if isLobby then
                 Controls.Panel:SetHide(true);
                 Controls.Settings:SetHide(true);
                 Controls.ProfilesPanel:SetHide(true);
-                Controls.Toggle:SetHide(false);
+                Controls.Toggle:SetHide(nativeChat ~= nil);
                 InvalidateDraft();
                 if db then
                     Query("UPDATE igt_state SET value='' WHERE key='session' AND value=" .. Quote(session));
                 end
             else
-                for _, row in ipairs(chatRows) do Controls.TranscriptStack:ReleaseChild(row.Box); end
-                chatRows = {};
-                Controls.Draft:SetText("");
+                ClearRows();
+                Draft():SetText("");
                 lastTranslation = "";
                 Initialize();
             end

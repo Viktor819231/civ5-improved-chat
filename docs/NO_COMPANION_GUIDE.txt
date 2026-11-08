@@ -4,16 +4,24 @@ IMPROVED CHAT - COMPANION-FREE BETA
 2. Extract your download. Copy the inner InGameTranslateMod folder into your
    Civilization V installation's Assets\DLC folder, replacing the old copy.
    Keep only one copy installed. This is the same installation style as EUI.
-3. Start Civ V and open Improved Chat in a lobby or game. Translation is
-   enabled by default; choose a language and send. No Settings step is needed.
+3. Start Civ V and join a multiplayer lobby or game. Translation works in the
+   game's own chat. No Settings step is needed.
 
 No companion, installer, account, or API key entry is required.
 Do not share your downloaded ZIP: it contains your installation key. Share
 https://civ5-improved-chat-api.pages.dev/ so friends receive their own keys.
 
-Translation, incoming source selection (including Russian in Latin letters),
-private replies, icons, colours, window controls, notes and encounter history
-remain in the overlay. Existing local notes/history use the same database.
+IN THE CHAT
+Other alphabets are translated by themselves, on the message's own line. Hover
+a line to see the original. The small T on a line translates it, < shows the
+original again, and right-clicking T lets you choose the message's language.
+Right-click a line for player notes and history.
+On the chat row, TR: - means you send exactly what you type. Pick a language
+under TR and each message is translated before it is sent, to whoever is
+chosen in the game's To: list. Your choice is remembered. The ... button opens
+settings (languages, icons, colours), player notes and encounter history.
+If another mod replaces the game's chat script, Improved Chat opens as a
+separate window with the same features. Existing notes/history are kept.
 Windows clipboard Copy/Paste buttons are unavailable in this version.
 
 Translation sends selected message text to the hosted Cloudflare service.
@@ -45,7 +53,8 @@ If local data is deleted or restored from backup, get a fresh download.
 Do not repeatedly download to evade service limits. Public download limits
 are shared by users on the same network.
 
-Stock gameplay, optional EUI, and KEK Mod are supported. Copy the folder
-into Assets\DLC. No extra step. Multiplayer stability needs real-game
+Works with any mod or DLC, with or without EUI. Copy the folder into
+Assets\DLC. No extra step, and EUI's files are not changed. A mod with its own
+chat script (KEK Mod, for one) gets the separate translator window instead. Multiplayer stability needs real-game
 testing; a successful main-menu test does not prove it.
 To uninstall, close Civ V and remove Assets\DLC\InGameTranslateMod.

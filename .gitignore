@@ -30,6 +30,7 @@ installation.json
 DLC/InGameTranslateMod/*.Civ5Pkg
 DLC/InGameTranslateMod/Skin*/
 DLC/InGameTranslateMod/UI/StagingRoom.xml
+DLC/InGameTranslateMod/UI/StagingRoom.lua
 DLC/InGameTranslateMod/UI/InGameTranslateLobby.lua
 DLC/InGameTranslateMod/UI/InGameTranslateLobby.xml
 preview/*-preview.png

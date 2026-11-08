@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import shutil
 import zipfile
+from chat_hooks import GAME_CHAT, patch_chat, patch_lobby, read_stock, write_patched
 from release_privacy import check_public_files
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,8 +19,16 @@ def build(game: Path, generate_only: bool = False, output_dir: Path | None = Non
     assert lobby.count('</Context>') == 1
     lobby_bootstrap = '\t<LuaContext FileName="Assets/DLC/InGameTranslateMod/UI/InGameTranslateLobby" ID="InGameTranslateLobby" Hidden="0" />\n'
     (dlc / 'UI/StagingRoom.xml').write_text(lobby.replace('</Context>', lobby_bootstrap + '</Context>'), encoding='utf-8')
+    lobby_chat = game / 'Assets/UI/FrontEnd/Multiplayer/StagingRoom.lua'
+    write_patched(dlc / 'UI/StagingRoom.lua', patch_lobby(read_stock(lobby_chat), lobby_chat.name))
     panel = (dlc / 'UI/InGameTranslate.xml').read_text(encoding='utf-8')
     panel = panel.replace('ID="InGameTranslate"', 'ID="InGameTranslateLobby"', 1)
+    # The lobby chat sits low on the screen, so its menus open upward.
+    send_menu = '<GridData Anchor="R,B" Offset="0.-2"'
+    recipient = '<PullDown ID="Recipient" Anchor="L,T" Offset="0,0" Size="158,28" Style="GenericPullDown"'
+    assert panel.count(send_menu) == 1 and panel.count(recipient) == 1
+    panel = panel.replace(send_menu, send_menu.replace('R,B', 'R,T'))
+    panel = panel.replace(recipient, recipient.replace('GenericPullDown', 'GenericPullUp'))
     (dlc / 'UI/InGameTranslateLobby.xml').write_text(panel, encoding='utf-8')
     # Package the lobby as a complete XML/Lua pair. Static LuaContext lookup
     # must use the physical asset path, and its script needs no include lookup.
@@ -43,6 +52,10 @@ def build(game: Path, generate_only: bool = False, output_dir: Path | None = Non
         folder = dlc / f'Skin{version}'
         folder.mkdir(parents=True, exist_ok=True)
         (folder / 'InGame.xml').write_text(original.replace('</Context>', bootstrap + '</Context>'), encoding='utf-8')
+        # The chat script sits beside InGame.xml in every game version. Same package
+        # priority as that layout: above the game (0/100/200) and EUI (50/150/250).
+        chat = source.parent / 'WorldView/DiploCorner.lua'
+        write_patched(folder / 'DiploCorner.lua', patch_chat(read_stock(chat), GAME_CHAT, relative))
         manifest = f'''<?xml version="1.0" encoding="utf-8"?>
 <Civ5Package>
   <GUID>{GUID}</GUID><Version>1</Version><Priority>{priority}</Priority>

@@ -160,9 +160,8 @@ The recipient dropdown beside the draft offers All players or individual
 connected human players. Private recipients are rechecked before sending;
 a disconnect cancels delivery and never changes the recipient to All.
 Choose Send language and switch Translate ON, then type and press Enter or
-Send. Each submitted draft is translated and sent with a (TranslatorMod) tag
-(in English for every language, so all players read it the same); the input
-clears and keeps focus for your next reply. Translation stays enabled until
+Send. Each submitted draft is translated and sent as plain text, with no tag;
+the input clears and keeps focus for your next reply. Translation stays enabled until
 you toggle it OFF. With it OFF (the default), Send sends the original text.
 Language, recipient, colour and icon are captured separately for each draft.
 Settings > Preview draft and Send preview provide an optional review step.
@@ -251,23 +250,18 @@ translation uses the received text bytes, not screen recognition.
 Only new messages received while the translator is loaded are translated.
 
 COMPATIBILITY
-Targets stock Civ V, Gods & Kings, and Brave New World with or without EUI.
-An early Lua guard disables Improved Chat when unknown activated mods or
-active gameplay DLC/modpacks are detected. Official installed DLC, EUI and
-Improved Chat are allowed. Hover the disabled button for the reason.
-Checks are repeated when entering a lobby/game and during play; unsupported
-content cancels pending sends. If detection APIs fail, the add-on stays off.
-This cannot identify every base-file replacement/custom DLL or modpack that
-reuses official IDs, and cannot prevent another UI from failing before Lua.
-Adds child contexts to InGame.xml and StagingRoom.xml; does not replace
-EUI's DiploCorner or normal chat callbacks. Other mods replacing these
-two XML layouts can conflict.
+Runs with any mod or DLC: stock Civ V, Gods & Kings and Brave New World, with
+or without EUI, and gameplay mods alike. It never switches itself off because
+a mod is active. Adds child contexts to InGame.xml and StagingRoom.xml, and a small hook to
+copies of the game's DiploCorner.lua and StagingRoom.lua generated from your
+game. EUI's files are neither changed nor copied. If another mod replaces
+those scripts, Improved Chat runs as a separate window instead.
 
 KEK MOD
-KEK Mod is allowed. Copy InGameTranslateMod into Assets\DLC the same way as
-for the normal game. No extra step. The chat is added on the in-game screen,
-which KEK does not replace. KEK supplies its own lobby screen, so the lobby
-copy of that screen stays KEK's.
+Copy InGameTranslateMod into Assets\DLC the same way as for the normal game.
+KEK supplies its own chat and lobby scripts, which outrank these copies, so
+with KEK the translator is the separate window in game and is not in KEK's
+lobby. A KEK version that carries the small hook gets the in-chat buttons.
 Lua/SQLite automated tests pass; live lobby rendering and multiplayer
 delivery need an in-game test on your setup.
 

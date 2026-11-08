@@ -76,13 +76,10 @@ end
         self.assertEqual(len(self.lua.globals().Sent),0)
 
 
-    def test_incompatible_game_hides_ui_before_advancing_translation(self):
+    def test_any_mod_keeps_the_translator_working(self):
+        self.lua.execute("Modding.GetActivatedMods=function()return {{ID='any-gameplay-mod'}}end")
         self.host.draft('Hello');self.host.click('SendOriginal')
-        self.lua.execute("Modding.GetActivatedMods=function()return {{ID='unsupported-gameplay'}}end")
         self.host.tick(5)
         self.ticks()
-        self.assertEqual(self.calls,[])
-        self.assertEqual(len(self.lua.globals().Sent),0)
-        self.assertTrue(self.lua.globals().Controls.Panel.hidden)
-        self.assertTrue(self.lua.globals().Controls.Toggle.hidden)
-        self.assertFalse(self.lua.globals().input(1,27))
+        self.assertEqual(len(self.lua.globals().Sent),1)
+        self.assertFalse(self.lua.globals().Controls.Toggle.disabled)
