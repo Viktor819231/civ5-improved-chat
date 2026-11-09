@@ -1,3 +1,18 @@
+# Improved Chat 0.12.1 beta
+
+- One lost translation no longer stops the chat. Before, when an answer from
+  the translation service never arrived, every later message, yours and the
+  other players', stayed on .. or (Working...) until you rejoined the game.
+  Now the mod waits at most 15 seconds (45 for long texts), asks once more,
+  and goes on to the next message.
+- A message whose translation fails twice says so (! on the line, or "not
+  sent" for your own); the messages after it keep translating. Your message
+  is never sent untranslated by itself.
+- The mod's time limits are real seconds now; they ran at double speed.
+
+Upgrade: download again from the website and replace InGameTranslateMod with
+Civ V closed. Notes and history are kept.
+
 # Improved Chat 0.12.0 beta
 
 - Translation now happens in the game's own chat instead of a separate overlay,

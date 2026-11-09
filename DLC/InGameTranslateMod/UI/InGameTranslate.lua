@@ -1257,7 +1257,9 @@ local function Update(delta)
     if not initialized then return; end
     clock = clock + delta;
     UpdateWindowDrag();
-    if native then Safe(function() native.Update(delta); end); end
+    -- A second work step per frame (each step does one AES block); the frame's
+    -- time was already counted above, so request time limits stay real seconds.
+    if native then Safe(function() native.Update(0); end); end
     historyElapsed = historyElapsed + delta;
     if historyElapsed >= 10 then
         historyElapsed = 0;

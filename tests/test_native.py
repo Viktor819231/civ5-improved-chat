@@ -12,11 +12,15 @@ class NativeUITests(unittest.TestCase):
         self.lua.globals().native_response=self.response
         self.lua.execute('''
 Network.HttpRequest=function(options)
- local body=native_response(options.url);local popped=false
- return {Finished=function()return native_finished()end,PopReceivedData=function()if not popped then popped=true;return body end;return '' end}
+ local body=native_response(options.url);local n=native_count();local popped=false
+ return {Finished=function()return native_finished(n)end,PopReceivedData=function()if not popped and native_finished(n) then popped=true;return body end;return '' end}
 end
 ''')
-        self.lua.globals().native_finished=lambda:self.finish
+        # Requests listed in self.lost never answer and never report finished, like the
+        # one that stopped a real game's chat (2026-11-09).
+        self.lost=set()
+        self.lua.globals().native_count=lambda:len(self.calls)
+        self.lua.globals().native_finished=lambda n:self.finish and n not in self.lost
         for name in ['IGT_Crypto.lua','IGT_Native.lua']:
             self.lua.execute((UI/name).read_text(encoding='utf-8'))
         source=(UI/'InGameTranslate.lua').read_text(encoding='utf-8').replace('IGT_Config = false; -- PERSONALIZED_DOWNLOAD_CONFIG', 'IGT_Config={id="00000000-0000-4000-8000-000000000001",key="'+'ab'*32+'",url="http://example.test"};')
@@ -65,14 +69,34 @@ end
         self.assertEqual(len(self.calls),2)
         self.assertIn('Hello',self.calls[0][1]);self.assertIn('Привет всем',self.calls[1][1])
 
-    def test_sequence_persists_and_timeout_never_stacks_requests(self):
-        self.finish=False
-        self.host.draft('Hello');self.host.click('Translate');self.ticks(1100)
-        self.assertEqual(len(self.calls),1)
-        self.host.draft('Next');self.host.click('Translate');self.ticks(300)
-        self.assertEqual(len(self.calls),1)
-        self.finish=True;self.ticks(300)
+    def status(self):
+        return [tuple(r) for r in self.db.execute('SELECT status,error FROM native_requests ORDER BY id')]
+
+    def test_one_lost_answer_is_asked_again_and_chat_goes_on(self):
+        # The real game: one answer never came and every later line said "Working" forever.
+        self.lost={1}
+        g=self.lua.globals()
+        g.Events.GameMessageChat_handler(1,-1,'ну да',0);self.ticks(500)
         self.assertEqual([x[0] for x in self.calls],['1','2'])
+        self.assertEqual(self.status()[0],('seen',''))
+        g.Events.GameMessageChat_handler(1,-1,'у меня петраспот)',0)
+        self.host.draft('Hello');self.host.click('SendOriginal');self.ticks()
+        self.assertEqual([x[0] for x in self.calls],['1','2','3','4'])
+        self.assertEqual(len(g.Sent),1)
+        self.assertEqual([x[0] for x in self.status()],['seen','seen','seen'])
+
+    def test_lost_answers_never_stop_the_queue_or_stack_requests(self):
+        self.finish=False
+        self.host.draft('Hello');self.host.click('Translate');self.ticks(450)
+        self.assertEqual(len(self.calls),2)  # asked again once after 15 s
+        self.ticks(450)
+        self.assertEqual(self.status()[0],('seen','Translation service is unavailable. Try later.'))
+        self.host.draft('Next');self.host.click('Translate');self.ticks(300)
+        self.assertEqual(len(self.calls),2)  # two dead requests: wait, never a third
+        self.ticks(400)
+        self.assertEqual([x[0] for x in self.calls],['1','2','3'])  # the oldest expired after 60 s
+        self.finish=True;self.ticks(300)
+        self.assertEqual([x[0] for x in self.calls],['1','2','3'])
         self.assertEqual(len(self.lua.globals().Sent),0)
 
 

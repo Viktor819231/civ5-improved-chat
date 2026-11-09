@@ -3,7 +3,7 @@
 Translate multiplayer chat right inside Civ V's own chat, and keep local player
 notes. Works in the lobby and in-game chat, with or without EUI.
 
-**Version 0.12.0 beta** — translation built into the game's own chat, Civ 5-aware, your own language, 31 send languages.
+**Version 0.12.1 beta** — translation built into the game's own chat, Civ 5-aware, your own language, 31 send languages.
 
 **[Download the companion-free beta](https://civ5-improved-chat-api.pages.dev/)**
 
